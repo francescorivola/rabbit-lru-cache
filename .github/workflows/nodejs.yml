@@ -12,7 +12,13 @@ jobs:
         node-version: [8.x, 10.x, 12.x]
 
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Use RabbitMq
+      uses: getong/rabbitmq-action@v1.2
+      with:
+        rabbitmq version: '3-management-alpine'
+        host port: 5672
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:

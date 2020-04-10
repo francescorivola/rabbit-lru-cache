@@ -11,7 +11,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Use RabbitMq
+        uses: getong/rabbitmq-action@v1.2
+        with:
+          rabbitmq version: '3-management-alpine'
+          host port: 5672
       - uses: actions/setup-node@v1
         with:
           node-version: 12
