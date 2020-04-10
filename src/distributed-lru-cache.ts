@@ -1,6 +1,7 @@
 import * as LRUCache from "lru-cache";
 import { connect, Options, ConsumeMessage } from "amqplib";
 import * as uuid from "uuid";
+import { ClosingError } from "./errors/ClosingError";
 
 export type DistributedLRUCache<T> = {
     close: () => Promise<void>;
@@ -19,7 +20,7 @@ export type DistributedLRUCacheOptions<T> = {
 
 export async function createDistributedLRUCache<T>(options: DistributedLRUCacheOptions<T>): Promise<DistributedLRUCache<T>> {
     let closing = false;
-    const cacheId = uuid.v5('distributed-lru-cache.com', uuid.v5.DNS);
+    const cacheId = uuid.v1();
     const connection = await connect(options.amqpConnectOptions);
     const [ publisherChannel, subscriberChannel ] = await Promise.all([
         connection.createChannel(),
@@ -55,14 +56,14 @@ export async function createDistributedLRUCache<T>(options: DistributedLRUCacheO
 
     function assertIsClosingOrClosed(): void {
         if (closing) {
-            throw new Error("closing"); // TODO: improve error message
+            throw new ClosingError("Cache is closing or has been closed");
         }
     }
 
     function assertIsClosingOrClosedDecorator<TT>(fn: (...args) => TT): (...args) => TT {
         return function(...args): TT {
             assertIsClosingOrClosed();
-            return fn(args);
+            return fn(...args);
         }
     }
 
