@@ -1,0 +1,12 @@
+node_modules/
+src/
+test/
+coverage/
+tsconfig.json
+tslint.json
+.gitignore
+codeship-services.yml
+codeship-steps.yml
+env.encrypted
+jest.config.js
+npm-publish.sh
