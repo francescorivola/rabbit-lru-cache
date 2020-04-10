@@ -37,11 +37,15 @@
     "eslint": "^6.8.0",
     "jest": "^25.1.0",
     "ts-jest": "^25.3.1",
-    "typescript": "^3.6.4"
+    "typescript": "^3.6.4",
+    "amqplib": "^0.5.5",
+    "lru-cache": "^5.1.1"
+  },
+  "peerDependencies": {
+    "amqplib": "^0.5.5",
+    "lru-cache": "^5.1.1"
   },
   "dependencies": {
-    "amqplib": "^0.5.5",
-    "lru-cache": "^5.1.1",
     "uuid": "^7.0.3"
   }
 }
