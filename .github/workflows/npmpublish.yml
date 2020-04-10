@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Use RabbitMq
         uses: getong/rabbitmq-action@v1.2
         with:
@@ -20,6 +21,7 @@ jobs:
           host port: 5672
           rabbitmq user: 'guest'
           rabbitmq password: 'guest'
+
       - uses: actions/setup-node@v1
         with:
           node-version: 12
@@ -27,7 +29,12 @@ jobs:
       - run: npm run build
       - run: npm run lint
       - run: npm run test-ci
-      - run: npm run publish-code-coverage
+        env:
+            CI: true
+
+      - name: Publish Code Coverage
+        if: github.ref == 'refs/heads/master'
+        uses: codecov/codecov-action@v1
 
   publish-npm:
     needs: build
