@@ -1,0 +1,21 @@
+{
+  "name": "fastify-mongodb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.5.5",
+    "fastify": "^2.13.0",
+    "lru-cache": "^5.1.1",
+    "mongodb": "^3.5.5",
+    "rabbit-lru-cache": "0.0.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.5.13",
+    "@types/lru-cache": "^5.1.0",
+    "@types/mongodb": "^3.5.5"
+  }
+}
