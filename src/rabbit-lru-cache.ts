@@ -4,7 +4,7 @@ import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
 import { notEqual } from "assert";
 
-export type DistributedLRUCache<T> = {
+export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
     getItemCount: () => number;
     doesAllowStale: () => boolean;
@@ -13,13 +13,13 @@ export type DistributedLRUCache<T> = {
     getMaxAge: () => number;
 } & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
 
-export type DistributedLRUCacheOptions<T> = {
+export type RabbitLRUCacheOptions<T> = {
     name: string;
     LRUCacheOptions: LRUCache.Options<string, T>;
     amqpConnectOptions: Options.Connect;
 };
 
-export async function createDistributedLRUCache<T>(options: DistributedLRUCacheOptions<T>): Promise<DistributedLRUCache<T>> {
+export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
     notEqual(options, null);
     notEqual(options.name, null);
     notEqual(options.name, "");
@@ -33,7 +33,7 @@ export async function createDistributedLRUCache<T>(options: DistributedLRUCacheO
         connection.createChannel(),
         connection.createChannel()
     ]);
-    const exchangeName = `lru-cache-${options.name}`;
+    const exchangeName = `rabbit-lru-cache-${options.name}`;
     await publisherChannel.assertExchange(exchangeName, 'fanout', { durable: false });
     const queueName = `${exchangeName}-${cacheId}`;
     await subscriberChannel.assertQueue(queueName, {
@@ -45,7 +45,7 @@ export async function createDistributedLRUCache<T>(options: DistributedLRUCacheO
     await subscriberChannel.bindQueue(queueName, exchangeName, '');
     const consumer = await subscriberChannel.consume(queueName, (msg: ConsumeMessage | null) => {
         if (msg === null) {
-            // TODO: hande msg null scenario
+            // TODO: handle msg null scenario
             return;
         }
         const publisherCacheId = msg.properties.headers["x-cache-id"];

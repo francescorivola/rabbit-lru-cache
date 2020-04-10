@@ -1,7 +1,7 @@
 {
-  "name": "distributed-lru-cache",
+  "name": "rabbit-lru-cache",
   "version": "0.0.1",
-  "description": "An experimental lib to invalid lru cache in distributed system.",
+  "description": "An experimental lib to invalid lru cache in distributed system powered by rabbitmq.",
   "main": "build/index.js",
   "scripts": {
     "test": "jest --watchAll",
@@ -13,16 +13,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/francescorivola/distributed-lru-cache.git"
+    "url": "git+https://github.com/francescorivola/rabbit-lru-cache.git"
   },
   "keywords": [
     "distributed",
     "lru-cache",
+    "rabbitmq",
+    "amqplib",
     "lib"
   ],
   "author": "francescorivola",
   "license": "MIT",
-  "homepage": "https://github.com/francescorivola/distributed-lru-cache#readme",
+  "homepage": "https://github.com/francescorivola/rabbit-lru-cache#readme",
   "devDependencies": {
     "@types/amqplib": "^0.5.13",
     "@types/jest": "^25.1.0",

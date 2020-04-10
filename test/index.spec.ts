@@ -1,5 +1,5 @@
-import createDistributedLRUCache from "../src/index";
-import { DistributedLRUCache, DistributedLRUCacheOptions } from "../src/distributed-lru-cache";
+import createRabbitLRUCache from "../src/index";
+import { RabbitLRUCache, RabbitLRUCacheOptions } from "../src/rabbit-lru-cache";
 import * as uuid from "uuid";
 import { Options } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
@@ -16,7 +16,7 @@ const amqpConnectOptions: Options.Connect = {
     password: "guest"
 };
 
-describe("distributed-lru-cache", () => {
+describe("rabbit-lru-cache", () => {
 
     it("should throw an assert error if options is null", async () => {
         // Arrange
@@ -24,7 +24,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>(null as unknown as DistributedLRUCacheOptions<string>);
+            await createRabbitLRUCache<string>(null as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
             expect(error.message).toBe("null != null");
@@ -37,7 +37,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>(undefined as unknown as DistributedLRUCacheOptions<string>);
+            await createRabbitLRUCache<string>(undefined as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
             expect(error.message).toBe("undefined != null");
@@ -50,7 +50,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>({
+            await createRabbitLRUCache<string>({
                 name: null as unknown as string,
                 LRUCacheOptions: {},
                 amqpConnectOptions
@@ -67,7 +67,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>({
+            await createRabbitLRUCache<string>({
                 name: "",
                 LRUCacheOptions: {},
                 amqpConnectOptions
@@ -84,7 +84,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>({
+            await createRabbitLRUCache<string>({
                 name: "test",
                 LRUCacheOptions: null as unknown as LRUCache.Options<string, string>,
                 amqpConnectOptions
@@ -101,7 +101,7 @@ describe("distributed-lru-cache", () => {
 
         // Act
         try {
-            await createDistributedLRUCache<string>({
+            await createRabbitLRUCache<string>({
                 name: "test",
                 LRUCacheOptions: { },
                 amqpConnectOptions: null as unknown as Options.Connect
@@ -114,23 +114,23 @@ describe("distributed-lru-cache", () => {
 
     it("should invalidate cache key on del key", async () => {
         // Arrange
-        let cache1: DistributedLRUCache<string> | null = null;
-        let cache2: DistributedLRUCache<string> | null = null;
-        let cache3: DistributedLRUCache<string> | null = null;
+        let cache1: RabbitLRUCache<string> | null = null;
+        let cache2: RabbitLRUCache<string> | null = null;
+        let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
         try {
-            cache1 = await createDistributedLRUCache<string>({
+            cache1 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
             });
-            cache2 = await createDistributedLRUCache<string>({
+            cache2 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
             });
-            cache3 = await createDistributedLRUCache<string>({
+            cache3 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
@@ -159,23 +159,23 @@ describe("distributed-lru-cache", () => {
 
     it("should invalidate all cache keys on reset", async () => {
         // Arrange
-        let cache1: DistributedLRUCache<string> | null = null;
-        let cache2: DistributedLRUCache<string> | null = null;
-        let cache3: DistributedLRUCache<string> | null = null;
+        let cache1: RabbitLRUCache<string> | null = null;
+        let cache2: RabbitLRUCache<string> | null = null;
+        let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
         try {
-            cache1 = await createDistributedLRUCache<string>({
+            cache1 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
             });
-            cache2 = await createDistributedLRUCache<string>({
+            cache2 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
             });
-            cache3 = await createDistributedLRUCache<string>({
+            cache3 = await createRabbitLRUCache<string>({
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
@@ -228,7 +228,7 @@ describe("distributed-lru-cache", () => {
         expect.assertions(2);
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
-        const cache = await createDistributedLRUCache<string>({
+        const cache = await createRabbitLRUCache<string>({
             name,
             LRUCacheOptions,
             amqpConnectOptions
@@ -248,13 +248,13 @@ describe("distributed-lru-cache", () => {
 
         it("should return the LRU cache max value", async () => {
             // Arrange
-            let cache: DistributedLRUCache<string> | null = null;
+            let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions = {
                 max: 1000
             };
             try {
-                cache = await createDistributedLRUCache<string>({
+                cache = await createRabbitLRUCache<string>({
                     name,
                     LRUCacheOptions,
                     amqpConnectOptions
@@ -275,13 +275,13 @@ describe("distributed-lru-cache", () => {
 
         it("should return the LRU cache max age value", async () => {
             // Arrange
-            let cache: DistributedLRUCache<string> | null = null;
+            let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions = {
                 maxAge: 100
             };
             try {
-                cache = await createDistributedLRUCache<string>({
+                cache = await createRabbitLRUCache<string>({
                     name,
                     LRUCacheOptions,
                     amqpConnectOptions
@@ -302,13 +302,13 @@ describe("distributed-lru-cache", () => {
 
         it("should return the LRU cache stale value", async () => {
             // Arrange
-            let cache: DistributedLRUCache<string> | null = null;
+            let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions: LRUCache.Options<string, string> = {
                 stale: true
             };
             try {
-                cache = await createDistributedLRUCache<string>({
+                cache = await createRabbitLRUCache<string>({
                     name,
                     LRUCacheOptions,
                     amqpConnectOptions

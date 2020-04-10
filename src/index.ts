@@ -1,2 +1,2 @@
-import { createDistributedLRUCache } from "./distributed-lru-cache";
-export default createDistributedLRUCache;
+import { createRabbitLRUCache } from "./rabbit-lru-cache";
+export default createRabbitLRUCache;
