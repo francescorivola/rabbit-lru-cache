@@ -2,6 +2,7 @@ import * as LRUCache from "lru-cache";
 import { connect, Options, ConsumeMessage } from "amqplib";
 import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
+import { notEqual } from "assert";
 
 export type DistributedLRUCache<T> = {
     close: () => Promise<void>;
@@ -19,6 +20,12 @@ export type DistributedLRUCacheOptions<T> = {
 };
 
 export async function createDistributedLRUCache<T>(options: DistributedLRUCacheOptions<T>): Promise<DistributedLRUCache<T>> {
+    notEqual(options, null);
+    notEqual(options.name, null);
+    notEqual(options.name, "");
+    notEqual(options.LRUCacheOptions, null);
+    notEqual(options.amqpConnectOptions, null);
+
     let closing = false;
     const cacheId = uuid.v1();
     const connection = await connect(options.amqpConnectOptions);
