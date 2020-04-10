@@ -19,6 +19,8 @@ jobs:
       with:
         rabbitmq version: '3-management-alpine'
         host port: 5672
+        rabbitmq user: 'guest'
+        rabbitmq password: 'guest'
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
