@@ -6,10 +6,6 @@ import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
 
-function wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
     username: "guest",
@@ -119,6 +115,8 @@ describe("rabbit-lru-cache", () => {
         let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
+        let promiseCache2Resolve;
+        let promiseCache3Resolve;
         try {
             cache1 = await createRabbitLRUCache<string>({
                 name,
@@ -134,6 +132,14 @@ describe("rabbit-lru-cache", () => {
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
+            });
+            const promiseCache2GetTheMessage = new Promise(resolve => {
+                promiseCache2Resolve = resolve;
+                cache2?.addOnMessageListener(resolve);
+            });
+            const promiseCache3GetTheMessage = new Promise(resolve => {
+                promiseCache3Resolve = resolve;
+                cache3?.addOnMessageListener(resolve);
             });
             cache1.set("KEY_A", "VALUE_A");
             expect(cache1.get("KEY_A")).toBe("VALUE_A");
@@ -146,12 +152,15 @@ describe("rabbit-lru-cache", () => {
             cache1.del("KEY_A");
 
             // Assert
-            await wait(5);
+            await promiseCache2GetTheMessage;
+            await promiseCache3GetTheMessage;
             expect(cache1.get("KEY_A")).toBeUndefined();
             expect(cache2.get("KEY_A")).toBeUndefined();
             expect(cache3.get("KEY_A")).toBeUndefined();
         } finally {
             await cache1?.close();
+            cache2?.removeOnMessageListener(promiseCache2Resolve);
+            cache3?.removeOnMessageListener(promiseCache3Resolve);
             await cache2?.close();
             await cache3?.close();
         }
@@ -164,6 +173,8 @@ describe("rabbit-lru-cache", () => {
         let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
+        let promiseCache2Resolve;
+        let promiseCache3Resolve;
         try {
             cache1 = await createRabbitLRUCache<string>({
                 name,
@@ -179,6 +190,14 @@ describe("rabbit-lru-cache", () => {
                 name,
                 LRUCacheOptions,
                 amqpConnectOptions
+            });
+            const promiseCache2GetTheMessage = new Promise(resolve => {
+                promiseCache2Resolve = resolve;
+                cache2?.addOnMessageListener(resolve);
+            });
+            const promiseCache3GetTheMessage = new Promise(resolve => {
+                promiseCache3Resolve = resolve;
+                cache3?.addOnMessageListener(resolve);
             });
             for(let i = 0; i < 1000; i++) {
                 const key = `KEY_${i}`;
@@ -203,7 +222,8 @@ describe("rabbit-lru-cache", () => {
             cache1.reset();
 
             // Assert
-            await wait(5);
+            await promiseCache2GetTheMessage;
+            await promiseCache3GetTheMessage;
             expect(cache1.get("KEY_0")).toBeUndefined();
             expect(cache1.peek("KEY_0")).toBeUndefined();
             expect(cache1.getLength()).toBe(0);
@@ -218,6 +238,8 @@ describe("rabbit-lru-cache", () => {
             expect(cache3.getItemCount()).toBe(0);
         } finally {
             await cache1?.close();
+            cache2?.removeOnMessageListener(promiseCache2Resolve);
+            cache3?.removeOnMessageListener(promiseCache3Resolve);
             await cache2?.close();
             await cache3?.close();
         }

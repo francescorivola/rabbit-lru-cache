@@ -3,6 +3,7 @@ import { connect, Options, ConsumeMessage } from "amqplib";
 import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
 import { notEqual } from "assert";
+import { EventEmitter } from "events";
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
@@ -11,6 +12,8 @@ export type RabbitLRUCache<T> = {
     getLength: () => number;
     getMax: () => number;
     getMaxAge: () => number;
+    addOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void;
+    removeOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void;
 } & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
 
 export type RabbitLRUCacheOptions<T> = {
@@ -26,6 +29,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     notEqual(options.LRUCacheOptions, null);
     notEqual(options.amqpConnectOptions, null);
 
+    const eventEmitter = new EventEmitter();
     let closing = false;
     const cacheId = uuid.v1();
     const connection = await connect(options.amqpConnectOptions);
@@ -34,7 +38,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         connection.createChannel()
     ]);
     const exchangeName = `rabbit-lru-cache-${options.name}`;
-    await publisherChannel.assertExchange(exchangeName, 'fanout', { durable: false });
+    await publisherChannel.assertExchange(exchangeName, "fanout", { durable: false });
     const queueName = `${exchangeName}-${cacheId}`;
     await subscriberChannel.assertQueue(queueName, {
         durable: false,
@@ -42,7 +46,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         autoDelete: true
     });
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
-    await subscriberChannel.bindQueue(queueName, exchangeName, '');
+    await subscriberChannel.bindQueue(queueName, exchangeName, "");
     const consumer = await subscriberChannel.consume(queueName, (msg: ConsumeMessage | null) => {
         if (msg === null) {
             // TODO: handle msg null scenario
@@ -53,12 +57,13 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             return;
         }
         const content = msg.content.toString();
-        if (content === 'reset') {
+        if (content === "reset") {
             cache.reset();
-        } else if (content.startsWith('del:')) {
+        } else if (content.startsWith("del:")) {
             const key = content.substring(4);
             cache.del(key);
         }
+        eventEmitter.emit("on-message", content, publisherCacheId);
     }, { exclusive: true, noAck: true });
 
     function assertIsClosingOrClosed(): void {
@@ -75,8 +80,8 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     }
 
     function publish(message: string): void {
-        publisherChannel.publish(exchangeName, '', Buffer.from(message), { headers: {
-            'x-cache-id': cacheId
+        publisherChannel.publish(exchangeName, "", Buffer.from(message), { headers: {
+            "x-cache-id": cacheId
         }});
     }
 
@@ -88,7 +93,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         },
         reset(): void {
             assertIsClosingOrClosed();
-            publish('reset');
+            publish("reset");
             cache.reset();
         },
         get: assertIsClosingOrClosedDecorator(cache.get.bind(cache)),
@@ -132,6 +137,12 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             ]);
             await connection.close();
             cache.reset();
+        },
+        addOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
+            eventEmitter.addListener("on-message", fn);
+        },
+        removeOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
+            eventEmitter.removeListener("on-message", fn);
         }
     };
 }
