@@ -27,7 +27,7 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node index.js
+    command: node server.js
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017
@@ -43,7 +43,7 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node index.js
+    command: node server.js
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017
@@ -59,7 +59,7 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node index.js
+    command: node server.js
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017

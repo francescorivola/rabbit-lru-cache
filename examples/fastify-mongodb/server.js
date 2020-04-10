@@ -35,7 +35,7 @@ const start = async () => {
             reply.status(404).send();
             return;
         }
-        cache.set(id, item);
+        // cache.set(id, item);
         reply.header("X-Cache", "MISS");
         return item;
     });
