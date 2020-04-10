@@ -1,6 +1,6 @@
 {
   "name": "rabbit-lru-cache",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "An experimental lib to invalid lru cache in distributed system powered by rabbitmq.",
   "main": "build/index.js",
   "scripts": {
