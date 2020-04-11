@@ -1,9 +1,10 @@
 import * as LRUCache from "lru-cache";
-import { connect, Options, ConsumeMessage } from "amqplib";
+import { connect, Options, ConsumeMessage, Channel, Connection } from "amqplib";
 import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
 import { notEqual } from "assert";
 import { EventEmitter } from "events";
+import once from "./utils/once";
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
@@ -31,40 +32,87 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
 
     const eventEmitter = new EventEmitter();
     let closing = false;
+    let reconnecting = false;
     const cacheId = uuid.v1();
-    const connection = await connect(options.amqpConnectOptions);
-    const [ publisherChannel, subscriberChannel ] = await Promise.all([
-        connection.createChannel(),
-        connection.createChannel()
-    ]);
-    const exchangeName = `rabbit-lru-cache-${options.name}`;
-    await publisherChannel.assertExchange(exchangeName, "fanout", { durable: false });
-    const queueName = `${exchangeName}-${cacheId}`;
-    await subscriberChannel.assertQueue(queueName, {
-        durable: false,
-        exclusive: true,
-        autoDelete: true
-    });
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
-    await subscriberChannel.bindQueue(queueName, exchangeName, "");
-    const consumer = await subscriberChannel.consume(queueName, function onMessage(msg: ConsumeMessage | null) {
-        if (msg === null) {
-            // TODO: handle msg null scenario
+    let connection: Connection;
+    let publisherChannel: Channel, subscriberChannel: Channel;
+    const exchangeName = `rabbit-lru-cache-${options.name}`;
+
+    async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryTime: number) => Promise<void>): Promise<Connection> {
+        const connection = await connect(options);
+        connection.removeAllListeners("error");
+        const errorHandler = once(handleConnectionError);
+        connection.on("error", errorHandler);
+        connection.on("close", errorHandler);
+        return connection;
+    }
+
+    async function createPublisher(connection: Connection, exchangeName: string): Promise<Channel> {
+        const channel = await connection.createChannel();
+        await channel.assertExchange(exchangeName, "fanout", { durable: false });
+        return channel;
+    }
+
+    async function createConsumer(connection: Connection, exchangeName: string, cacheId: string, cache: LRUCache<string, T>): Promise<Channel> {
+        const channel = await connection.createChannel();
+        const queueName = `${exchangeName}-${cacheId}`;
+        await channel.assertQueue(queueName, {
+            durable: false,
+            exclusive: true,
+            autoDelete: true
+        });
+        await channel.bindQueue(queueName, exchangeName, "");
+        await channel.consume(queueName, function onMessage(msg: ConsumeMessage | null) {
+            if (msg === null) {
+                // TODO: handle msg null scenario
+                return;
+            }
+            const publisherCacheId = msg.properties.headers["x-cache-id"];
+            if (publisherCacheId === cacheId) {
+                return;
+            }
+            const content = msg.content.toString();
+            if (content === "reset") {
+                cache.reset();
+            } else if (content.startsWith("del:")) {
+                const key = content.substring(4);
+                cache.del(key);
+            }
+            eventEmitter.emit("message", content, publisherCacheId);
+        }, { exclusive: true, noAck: true, consumerTag: cacheId });
+        return channel;
+    }
+
+    async function handleConnectionError(error: Error, attempt = 0, retryTime = 0): Promise<void> {
+        if (closing) {
             return;
         }
-        const publisherCacheId = msg.properties.headers["x-cache-id"];
-        if (publisherCacheId === cacheId) {
-            return;
-        }
-        const content = msg.content.toString();
-        if (content === "reset") {
+        const { connectionRetryUpToMs, connectionRetryIncreaseOnMs } = {
+            connectionRetryIncreaseOnMs: 1000,
+            connectionRetryUpToMs: 60000
+        };
+        try {
+            attempt++;
+            reconnecting = true;
             cache.reset();
-        } else if (content.startsWith("del:")) {
-            const key = content.substring(4);
-            cache.del(key);
+            eventEmitter.emit("reconnecting", error, attempt, retryTime);
+            connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+            publisherChannel = await createPublisher(connection, exchangeName);
+            subscriberChannel = await createConsumer(connection, exchangeName, cacheId, cache);
+            reconnecting = false;
+            eventEmitter.emit("reconnected", error, attempt, retryTime);
+        } catch(error) {
+            if (retryTime < connectionRetryUpToMs) {
+                retryTime = retryTime + connectionRetryIncreaseOnMs;
+            }
+            setTimeout(handleConnectionError.bind(null, error, attempt, retryTime), retryTime);
         }
-        eventEmitter.emit("message", content, publisherCacheId);
-    }, { exclusive: true, noAck: true });
+    }
+
+    connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+    publisherChannel = await createPublisher(connection, exchangeName);
+    subscriberChannel = await createConsumer(connection, exchangeName, cacheId, cache);
 
     function assertIsClosingOrClosed(): void {
         if (closing) {
@@ -80,6 +128,9 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     }
 
     function publish(message: string): void {
+        if (reconnecting) {
+            return;
+        }
         publisherChannel.publish(exchangeName, "", Buffer.from(message), { headers: {
             "x-cache-id": cacheId
         }});
@@ -105,7 +156,13 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         keys: assertIsClosingOrClosedDecorator(cache.keys.bind(cache)),
         load: assertIsClosingOrClosedDecorator(cache.load.bind(cache)),
         peek: assertIsClosingOrClosedDecorator(cache.peek.bind(cache)),
-        set: assertIsClosingOrClosedDecorator(cache.set.bind(cache)),
+        set(key: string, value: T): boolean {
+            assertIsClosingOrClosed();
+            if (reconnecting) {
+                return true;
+            }
+            return cache.set(key, value);
+        },
         rforEach: assertIsClosingOrClosedDecorator(cache.rforEach.bind(cache)),
         lengthCalculator: assertIsClosingOrClosedDecorator(cache.lengthCalculator.bind(cache)),
         doesAllowStale(): boolean {
@@ -130,7 +187,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         },
         async close(): Promise<void> {
             closing = true;
-            await subscriberChannel.cancel(consumer.consumerTag);
+            await subscriberChannel.cancel(cacheId);
             await Promise.all([
                 subscriberChannel.close(),
                 publisherChannel.close()
