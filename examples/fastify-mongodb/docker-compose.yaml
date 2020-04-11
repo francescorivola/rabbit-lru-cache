@@ -14,6 +14,10 @@ services:
       - rabbit-lru-cache-example
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./wait:/usr/share/wait
+    environment:
+      - WAIT_HOSTS=server1:3000,server2:3000,server3:3000
+    command: /bin/bash -c "chmod +x /usr/share/wait && /usr/share/wait && exec nginx -g 'daemon off;'"
     ports:
       - 8080:80
     depends_on:
@@ -27,12 +31,13 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node server.js
+    command: /bin/bash -c "chmod +x ./wait && ./wait && node server.js"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017
       - RABBITMQ_HOSTNAME=rabbitmq
       - SERVER_ID=server1
+      - WAIT_HOSTS=mongodb:27017,rabbitmq:15672
     depends_on:
       - rabbitmq
       - mongodb
@@ -43,12 +48,13 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node server.js
+    command: /bin/bash -c "chmod +x ./wait && ./wait && node server.js"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017
       - RABBITMQ_HOSTNAME=rabbitmq
       - SERVER_ID=server2
+      - WAIT_HOSTS=mongodb:27017,rabbitmq:15672
     depends_on:
       - rabbitmq
       - mongodb
@@ -59,12 +65,13 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-    command: node server.js
+    command: /bin/bash -c "chmod +x ./wait && ./wait && node server.js"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017
       - RABBITMQ_HOSTNAME=rabbitmq
       - SERVER_ID=server3
+      - WAIT_HOSTS=mongodb:27017,rabbitmq:15672
     depends_on:
       - rabbitmq
       - mongodb
