@@ -1,7 +1,7 @@
 const createRabbitLRUCache = require("rabbit-lru-cache").default;
 const { connect, ObjectId } = require("mongodb");
 const fastify = require("fastify")({ logger: true });
-const processId = process.env.PROCESS_ID || new ObjectId().toHexString();
+const serverId = process.env.SERVER_ID || new ObjectId().toHexString();
 
 const start = async () => {
   try {
@@ -18,12 +18,12 @@ const start = async () => {
         }
     });
     cache.addOnMessageListener((content, publisherCacheId) => {
-        fastify.log.info("Cache Message", "processId", processId, "publisherCacheId", publisherCacheId, "content", content);
+        fastify.log.info("Cache Message", "serverId", serverId, "publisherCacheId", publisherCacheId, "content", content);
     });
 
     fastify.get("/items/:id", async (request, reply) => {
         const { id } = request.params;
-        reply.header("X-Process-Id", processId);
+        reply.header("X-Server-Id", serverId);
         const cachedItem = cache.get(id);
         if (cachedItem) {
             reply.header("X-Cache", "HIT");
@@ -45,7 +45,7 @@ const start = async () => {
         const item = { ...request.body, _id: id };
         await items.replaceOne({ _id: id }, item, { upsert: true });
         cache.del(id);
-        reply.header("X-Process-Id", processId);
+        reply.header("X-Server-Id", serverId);
         return item;
     });
 
@@ -53,7 +53,7 @@ const start = async () => {
         const { id } = request.params;
         await items.deleteOne({ _id: id });
         cache.del(id);
-        reply.header("X-Process-Id", processId);
+        reply.header("X-Server-Id", serverId);
         reply.status(204).send();
     });
 

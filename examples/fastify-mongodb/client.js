@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -6,21 +6,21 @@ function wait(ms) {
 
 async function put(itemId, i) {
     const response = await fetch("http://localhost:8080/items/" + itemId, {
-        method: 'PUT',
-        body:    JSON.stringify({
-            test: 'Hi ' + i,
+        method: "PUT",
+        body: JSON.stringify({
+            test: "Hi " + i,
             date: new Date()
         }),
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
     });
-    console.log("put", itemId, response.headers.get('x-process-id'), await response.json());
+    console.log("put", itemId, response.headers.get("x-server-id"), await response.json());
 }
 
 async function get(itemId) {
     const response = await fetch("http://localhost:8080/items/" + itemId);
     console.log("get", itemId,
-        response.headers.get('x-process-id'),
-        response.headers.get('x-cache'),
+        response.headers.get("x-server-id"),
+        response.headers.get("x-cache"),
         await response.json());
 }
 
