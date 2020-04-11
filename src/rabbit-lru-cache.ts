@@ -63,7 +63,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             const key = content.substring(4);
             cache.del(key);
         }
-        eventEmitter.emit("on-message", content, publisherCacheId);
+        eventEmitter.emit("message", content, publisherCacheId);
     }, { exclusive: true, noAck: true });
 
     function assertIsClosingOrClosed(): void {
@@ -139,10 +139,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             cache.reset();
         },
         addOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
-            eventEmitter.addListener("on-message", fn);
+            eventEmitter.addListener("message", fn);
         },
         removeOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
-            eventEmitter.removeListener("on-message", fn);
+            eventEmitter.removeListener("message", fn);
         }
     };
 }
