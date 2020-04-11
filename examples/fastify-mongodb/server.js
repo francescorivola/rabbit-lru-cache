@@ -3,7 +3,7 @@ const { connect, ObjectId } = require("mongodb");
 const fastify = require("fastify")({ logger: true });
 const serverId = process.env.SERVER_ID || new ObjectId().toHexString();
 
-const start = async () => {
+async function start() {
   try {
     const client = await connect(process.env.MONGODB_URI || "mongodb://localhost:27017", { useNewUrlParser: true, useUnifiedTopology: true});
     const db = client.db("example");
