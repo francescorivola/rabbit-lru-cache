@@ -47,7 +47,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     });
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
     await subscriberChannel.bindQueue(queueName, exchangeName, "");
-    const consumer = await subscriberChannel.consume(queueName, (msg: ConsumeMessage | null) => {
+    const consumer = await subscriberChannel.consume(queueName, function onMessage(msg: ConsumeMessage | null) {
         if (msg === null) {
             // TODO: handle msg null scenario
             return;
