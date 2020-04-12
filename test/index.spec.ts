@@ -11,8 +11,8 @@ const amqpConnectOptions: Options.Connect = {
     password: "guest"
 };
 
-function requireRabbitLRUCache() {
-    return require("../src/index").default as (options: RabbitLRUCacheOptions<string>) => Promise<RabbitLRUCache<string>>;
+function requireRabbitLRUCache(): (options: RabbitLRUCacheOptions<string>) => Promise<RabbitLRUCache<string>> {
+    return require("../src/index").default;
 }
 
 describe("rabbit-lru-cache", () => {
