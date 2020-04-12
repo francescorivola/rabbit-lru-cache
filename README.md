@@ -33,10 +33,10 @@ cache.addInvalidationMessageReceivedListener((content, publisherCacheId) => {
     console.log("Cache Message", "publisherCacheId", publisherCacheId, "content", content);
 });
 cache.addReconnectingListener((error, attempt, retryInterval) => {
-    console.info("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    console.log("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
 });
 cache.addReconnectedListener((error, attempt, retryInterval) => {
-    console.info("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    console.log("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
 });
     
 cache.set("key", 5);
