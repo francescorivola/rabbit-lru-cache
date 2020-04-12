@@ -17,8 +17,14 @@ async function start() {
             password: process.env.RABBITMQ_PASSWORD || "guest"
         }
     });
-    cache.addOnMessageListener((content, publisherCacheId) => {
+    cache.addInvalidationMessageReceivedListener((content, publisherCacheId) => {
         fastify.log.info("Cache Message", "serverId", serverId, "publisherCacheId", publisherCacheId, "content", content);
+    });
+    cache.addReconnectingListener((error, attempt, retryInterval) => {
+        fastify.log.info("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    });
+    cache.addReconnectedListener((error, attempt, retryInterval) => {
+        fastify.log.info("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
     });
 
     fastify.get("/items/:id", async (request, reply) => {
