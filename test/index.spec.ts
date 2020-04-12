@@ -28,7 +28,7 @@ describe("rabbit-lru-cache", () => {
             await createRabbitLRUCache(null as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("null != null");
+            expect(error.message).toBe("options is required");
         }
     });
 
@@ -42,7 +42,7 @@ describe("rabbit-lru-cache", () => {
             await createRabbitLRUCache(undefined as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("undefined != null");
+            expect(error.message).toBe("options is required");
         }
     });
 
@@ -60,7 +60,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("null != null");
+            expect(error.message).toBe("options.name is required");
         }
     });
 
@@ -78,7 +78,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("'' != ''");
+            expect(error.message).toBe("options.name is required");
         }
     });
 
@@ -96,7 +96,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("null != null");
+            expect(error.message).toBe("options.LRUCacheOptions is required");
         }
     });
 
@@ -114,7 +114,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("null != null");
+            expect(error.message).toBe("options.amqpConnectOptions is required");
         }
     });
 

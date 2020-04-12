@@ -28,11 +28,11 @@ export type RabbitLRUCacheOptions<T> = {
 };
 
 export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
-    notEqual(options, null);
-    notEqual(options.name, null);
-    notEqual(options.name, "");
-    notEqual(options.LRUCacheOptions, null);
-    notEqual(options.amqpConnectOptions, null);
+    notEqual(options, null, "options is required");
+    notEqual(options.name, null, "options.name is required");
+    notEqual(options.name, "", "options.name is required");
+    notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
+    notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
 
     const eventEmitter = new EventEmitter();
     let closing = false;
