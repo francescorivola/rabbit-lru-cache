@@ -1,5 +1,5 @@
 # rabbit-lru-cache
-An experimental lib to invalid lru cache in distributed system powered by rabbitmq.
+An experimental lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 
 [ ![Npm Version](https://badge.fury.io/js/rabbit-lru-cache.svg)](https://www.npmjs.com/package/rabbit-lru-cache)
 [![Actions Status](https://github.com/francescorivola/rabbit-lru-cache/workflows/Node%20CI/badge.svg)](https://github.com/francescorivola/rabbit-lru-cache/actions)
@@ -12,6 +12,16 @@ An experimental lib to invalid lru cache in distributed system powered by rabbit
 ` npm install --save rabbit-lru-cache `
 
 ## Getting Started
+
+This library is powered by lru-cache and amqplib (both peer dependencies).
+
+
+
+Every time the lru-cache **del** or **reset** function is called a message is published in a fanout exchange and each cache subscribers consume the message to invalidate the corresponding key or the entire cache.
+
+The lib handles RabbitMq connection errors and it reconnects automatically if the connection with the broker got lost. During reconnection the local cache get resetted and **set** function ingnore any value disabling the cache to ensure cache does not store stale data. 
+
+## Examples
 
 Examples of the usage of this lib can be found in test folder or examples folder.
 
