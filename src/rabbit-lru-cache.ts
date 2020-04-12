@@ -13,8 +13,8 @@ export type RabbitLRUCache<T> = {
     getLength: () => number;
     getMax: () => number;
     getMaxAge: () => number;
-    addOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void;
-    removeOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void;
+    addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
+    removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
 } & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
 
 export type RabbitLRUCacheOptions<T> = {
@@ -79,7 +79,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 const key = content.substring(4);
                 cache.del(key);
             }
-            eventEmitter.emit("message", content, publisherCacheId);
+            eventEmitter.emit("invalid-message-received", content, publisherCacheId);
         }, { exclusive: true, noAck: true, consumerTag: cacheId });
         return channel;
     }
@@ -195,11 +195,11 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             await connection.close();
             cache.reset();
         },
-        addOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
-            eventEmitter.addListener("message", fn);
+        addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
+            eventEmitter.addListener("invalid-message-received", fn);
         },
-        removeOnMessageListener(fn: (content: string, publisherCacheId: string) => void): void {
-            eventEmitter.removeListener("message", fn);
+        removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
+            eventEmitter.removeListener("invalid-message-received", fn);
         }
     };
 }
