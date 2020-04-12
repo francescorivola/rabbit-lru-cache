@@ -18,14 +18,14 @@ export const createChannelMock = jest.fn(() => new Promise(resolve => setTimeout
     })
 }, 0)));
 export const emitter = {
-    error: (error: Error): void => { console.log(error) },
-    close: (error: Error): void => { console.log(error) }
+    emitError: (error: Error): void => { console.log(error) },
+    emitClose: (error: Error): void => { console.log(error) }
 };
 export const onMock = jest.fn((event, fn) => {
     if (event === "error") {
-        emitter.error = fn;
+        emitter.emitError = fn.bind(null);
     } else if (event === "close") {
-        emitter.close = fn;
+        emitter.emitClose = fn.bind(null);
     }
 });
 export const connectMock = jest.fn(() => {

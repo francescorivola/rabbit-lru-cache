@@ -8,7 +8,7 @@ export default function once<T>(fn: (...args) => T): (...args) => T {
         if (executed) {
             return result;
         }
-        result = fn(args);
+        result = fn.call(null, ...args);
         executed = true;
         return result;
     }

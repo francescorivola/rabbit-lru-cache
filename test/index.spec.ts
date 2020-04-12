@@ -310,7 +310,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
-        expect.assertions(4);
+        expect.assertions(6);
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
         let cache;
@@ -333,11 +333,13 @@ describe("rabbit-lru-cache", () => {
             });
             const connectionError = Error("RabbitMq is gone")
             const onReconnectingEvent = function(error, attempt, retryTime): void {
+                expect(error).toBe(connectionError);
                 expect(attempt).toBe(1);
                 expect(retryTime).toBe(0);
                 resolvePromiseReconnectingEventTriggered();
             }
             const onReconnectedEvent = function(error, attempt, retryTime): void {
+                expect(error).toBe(connectionError);
                 expect(attempt).toBe(1);
                 expect(retryTime).toBe(0);
                 resolvePromiseReconnectedEventTriggered();
@@ -346,7 +348,7 @@ describe("rabbit-lru-cache", () => {
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
-            emitter.error(connectionError);
+            emitter.emitError(connectionError);
 
             await promiseReconnectingEventTriggered;
             await promiseReconnectedEventTriggered;
