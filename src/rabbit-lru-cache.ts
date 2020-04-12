@@ -15,16 +15,20 @@ export type RabbitLRUCache<T> = {
     getMaxAge: () => number;
     addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
-    addReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
-    removeReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
-    addReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
-    removeReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
+    addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
+    removeReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
+    addReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
+    removeReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
 } & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
 
 export type RabbitLRUCacheOptions<T> = {
     name: string;
     LRUCacheOptions: LRUCache.Options<string, T>;
     amqpConnectOptions: Options.Connect;
+    reconnectionOptions?: {
+        retryIntervalUpTo?: number;
+        retryIntervalIncrease?: number;
+    };
 };
 
 export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
@@ -43,7 +47,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let publisherChannel: Channel, subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
 
-    async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryTime: number) => Promise<void>): Promise<Connection> {
+    async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): Promise<Connection> {
         const connection = await connect(options);
         connection.removeAllListeners("error");
         const errorHandler = once(handleConnectionError);
@@ -87,29 +91,27 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         return channel;
     }
 
-    async function handleConnectionError(error: Error, attempt = 0, retryTime = 0): Promise<void> {
+    async function handleConnectionError(error: Error, attempt = 0, retryInterval = 0): Promise<void> {
         if (closing) {
             return;
         }
-        const { connectionRetryUpToMs, connectionRetryIncreaseOnMs } = {
-            connectionRetryIncreaseOnMs: 1000,
-            connectionRetryUpToMs: 60000
-        };
+        const retryIntervalIncrease = options.reconnectionOptions?.retryIntervalIncrease ?? 1000;
+        const retryIntervalUpTo = options.reconnectionOptions?.retryIntervalUpTo ?? 60000;
         try {
             attempt++;
             reconnecting = true;
             cache.reset();
-            eventEmitter.emit("reconnecting", error, attempt, retryTime);
+            eventEmitter.emit("reconnecting", error, attempt, retryInterval);
             connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId, cache);
             reconnecting = false;
-            eventEmitter.emit("reconnected", error, attempt, retryTime);
+            eventEmitter.emit("reconnected", error, attempt, retryInterval);
         } catch(error) {
-            if (retryTime < connectionRetryUpToMs) {
-                retryTime = retryTime + connectionRetryIncreaseOnMs;
+            if (retryInterval < retryIntervalUpTo) {
+                retryInterval = retryInterval + retryIntervalIncrease;
             }
-            setTimeout(handleConnectionError.bind(null, error, attempt, retryTime), retryTime);
+            setTimeout(handleConnectionError.bind(null, error, attempt, retryInterval), retryInterval);
         }
     }
 
@@ -204,16 +206,16 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
             eventEmitter.removeListener("invalidation-message-received", fn);
         },
-        addReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+        addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
             eventEmitter.addListener("reconnecting", fn);
         },
-        removeReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+        removeReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
             eventEmitter.removeListener("reconnecting", fn);
         },
-        addReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+        addReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
             eventEmitter.addListener("reconnected", fn);
         },
-        removeReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+        removeReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
             eventEmitter.removeListener("reconnected", fn);
         }
     };
