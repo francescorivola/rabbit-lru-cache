@@ -15,6 +15,10 @@ export type RabbitLRUCache<T> = {
     getMaxAge: () => number;
     addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
+    addReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
+    removeReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
+    addReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
+    removeReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void;
 } & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
 
 export type RabbitLRUCacheOptions<T> = {
@@ -65,8 +69,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         await channel.bindQueue(queueName, exchangeName, "");
         await channel.consume(queueName, function onMessage(msg: ConsumeMessage | null) {
             if (msg === null) {
-                // TODO: handle msg null scenario
-                return;
+                throw new Error("consumer has been cancelled by RabbitMq");
             }
             const publisherCacheId = msg.properties.headers["x-cache-id"];
             if (publisherCacheId === cacheId) {
@@ -159,7 +162,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         set(key: string, value: T): boolean {
             assertIsClosingOrClosed();
             if (reconnecting) {
-                return true;
+                return false;
             }
             return cache.set(key, value);
         },
@@ -200,6 +203,18 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         },
         removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
             eventEmitter.removeListener("invalid-message-received", fn);
+        },
+        addReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+            eventEmitter.addListener("reconnecting", fn);
+        },
+        removeReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+            eventEmitter.removeListener("reconnecting", fn);
+        },
+        addReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+            eventEmitter.addListener("reconnected", fn);
+        },
+        removeReconnectedListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
+            eventEmitter.removeListener("reconnected", fn);
         }
     };
 }

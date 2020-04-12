@@ -4,6 +4,7 @@ import { Options } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
+import { amqplibMock, consumer, emitter } from "./amqplib-mock";
 
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
@@ -16,10 +17,6 @@ function requireRabbitLRUCache(): (options: RabbitLRUCacheOptions<string>) => Pr
 }
 
 describe("rabbit-lru-cache", () => {
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
 
     it("should throw an assert error if options is null", async () => {
         // Arrange
@@ -282,11 +279,90 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should throw an error if invalidation consume message is null", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        expect.assertions(2);
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        let cache;
+
+        // Act
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+            consumer.onMessage(null);
+        } catch(error) {
+            expect(error instanceof Error).toBe(true);
+            expect(error.message).toBe("consumer has been cancelled by RabbitMq");
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
+    it("should reconnect on connection error", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        expect.assertions(4);
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            let resolvePromise1;
+            const promise1 = new Promise(resolve => {
+                resolvePromise1 = resolve;
+            });
+            let resolvePromise2;
+            const promise2 = new Promise(resolve => {
+                resolvePromise2 = resolve;
+            });
+            const connectionError = Error("RabbitMq is gone")
+            const onReconnectingEvent = function(error, attempt, retryTime): void {
+                expect(attempt).toBe(1);
+                expect(retryTime).toBe(0);
+                resolvePromise1();
+            }
+            const onReconnectedEvent = function(error, attempt, retryTime): void {
+                expect(attempt).toBe(1);
+                expect(retryTime).toBe(0);
+                resolvePromise2();
+            }
+            cache.addReconnectingListener(onReconnectingEvent);
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            // Act
+            emitter.error(connectionError);
+
+            await promise1;
+            await promise2;
+
+            cache.removeReconnectingListener(onReconnectingEvent);
+            cache.removeReconnectedListener(onReconnectedEvent);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
     describe("getMax()", () => {
 
         it("should return the LRU cache max value", async () => {
             // Arrange
-            jest.restoreAllMocks();
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions = {
@@ -315,7 +391,6 @@ describe("rabbit-lru-cache", () => {
 
         it("should return the LRU cache max age value", async () => {
             // Arrange
-            jest.restoreAllMocks();
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions = {
@@ -344,7 +419,6 @@ describe("rabbit-lru-cache", () => {
 
         it("should return the LRU cache stale value", async () => {
             // Arrange
-            jest.restoreAllMocks();
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${uuid.v1()}`;
             const LRUCacheOptions: LRUCache.Options<string, string> = {
