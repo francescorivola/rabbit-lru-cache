@@ -3,6 +3,7 @@ import { Message } from "amqplib";
 export const consumer = {
     onMessage: (message: Message | null): void => { console.log(message) }
 };
+export const publish = jest.fn();
 export const createChannelMock = jest.fn(() => new Promise(resolve => setTimeout(() => {
     resolve({
         assertExchange: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
@@ -14,7 +15,7 @@ export const createChannelMock = jest.fn(() => new Promise(resolve => setTimeout
         }),
         close: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
         cancel: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
-        publish: jest.fn()
+        publish
     })
 }, 0)));
 export const emitter = {

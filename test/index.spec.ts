@@ -4,7 +4,7 @@ import { Options } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
-import { amqplibMock, consumer, emitter } from "./amqplib-mock";
+import { amqplibMock, consumer, emitter, publish } from "./amqplib-mock";
 
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
@@ -355,6 +355,63 @@ describe("rabbit-lru-cache", () => {
 
             cache.removeReconnectingListener(onReconnectingEvent);
             cache.removeReconnectedListener(onReconnectedEvent);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
+    it("should reset cache, and turn off cache when reconnecting", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            const connectionError = Error("RabbitMq is gone")
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            // Act
+            cache.set("KEY_A", "VALUE_A");
+            cache.set("KEY_B", "VALUE_B");
+            cache.set("KEY_C", "VALUE_C");
+            expect(cache.get("KEY_A")).toBe("VALUE_A");
+            expect(cache.get("KEY_B")).toBe("VALUE_B");
+            expect(cache.get("KEY_C")).toBe("VALUE_C");
+
+            emitter.emitError(connectionError);
+            expect(cache.get("KEY_A")).toBe(undefined);
+            expect(cache.get("KEY_B")).toBe(undefined);
+            expect(cache.get("KEY_C")).toBe(undefined);
+            expect(cache.set("KEY_A", "VALUE_A")).toBe(false);
+            expect(cache.get("KEY_A")).toBe(undefined);
+            cache.del("KEY_A");
+            expect(publish).toHaveBeenCalledTimes(0);
+
+            await promiseReconnectedEventTriggered;
+            cache.removeReconnectedListener(onReconnectedEvent);
+
+            expect(cache.set("KEY_A", "VALUE_A")).toBe(true);
+            expect(cache.get("KEY_A")).toBe("VALUE_A");
+            cache.del("KEY_A");
+            expect(publish).toHaveBeenCalledTimes(1);
+
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
