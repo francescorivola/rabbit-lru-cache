@@ -323,24 +323,25 @@ describe("rabbit-lru-cache", () => {
                 amqpConnectOptions
             });
 
-            let resolvePromise1;
-            const promise1 = new Promise(resolve => {
-                resolvePromise1 = resolve;
+            let resolvePromiseReconnectingEventTriggered;
+            const promiseReconnectingEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectingEventTriggered = resolve;
             });
-            let resolvePromise2;
-            const promise2 = new Promise(resolve => {
-                resolvePromise2 = resolve;
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
             });
             const connectionError = Error("RabbitMq is gone")
             const onReconnectingEvent = function(error, attempt, retryTime): void {
+                expect(error).toBe("");
                 expect(attempt).toBe(1);
                 expect(retryTime).toBe(0);
-                resolvePromise1();
+                resolvePromiseReconnectingEventTriggered();
             }
             const onReconnectedEvent = function(error, attempt, retryTime): void {
                 expect(attempt).toBe(1);
                 expect(retryTime).toBe(0);
-                resolvePromise2();
+                resolvePromiseReconnectedEventTriggered();
             }
             cache.addReconnectingListener(onReconnectingEvent);
             cache.addReconnectedListener(onReconnectedEvent);
@@ -348,8 +349,8 @@ describe("rabbit-lru-cache", () => {
             // Act
             emitter.error(connectionError);
 
-            await promise1;
-            await promise2;
+            await promiseReconnectingEventTriggered;
+            await promiseReconnectedEventTriggered;
 
             cache.removeReconnectingListener(onReconnectingEvent);
             cache.removeReconnectedListener(onReconnectedEvent);
