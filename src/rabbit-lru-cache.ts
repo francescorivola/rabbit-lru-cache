@@ -82,7 +82,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 const key = content.substring(4);
                 cache.del(key);
             }
-            eventEmitter.emit("invalid-message-received", content, publisherCacheId);
+            eventEmitter.emit("invalidation-message-received", content, publisherCacheId);
         }, { exclusive: true, noAck: true, consumerTag: cacheId });
         return channel;
     }
@@ -199,10 +199,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             cache.reset();
         },
         addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
-            eventEmitter.addListener("invalid-message-received", fn);
+            eventEmitter.addListener("invalidation-message-received", fn);
         },
         removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
-            eventEmitter.removeListener("invalid-message-received", fn);
+            eventEmitter.removeListener("invalidation-message-received", fn);
         },
         addReconnectingListener(fn: (error: Error, attempt: number, retryTime: number) => void): void {
             eventEmitter.addListener("reconnecting", fn);
