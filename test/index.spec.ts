@@ -12,7 +12,7 @@ const amqpConnectOptions: Options.Connect = {
     password: "guest"
 };
 
-function requireRabbitLRUCache(): (options: RabbitLRUCacheOptions<string>) => Promise<RabbitLRUCache<string>> {
+function requireRabbitLRUCache<T>(): (options: RabbitLRUCacheOptions<T>) => Promise<RabbitLRUCache<T>> {
     return require("../src/index").default;
 }
 
@@ -24,7 +24,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache(null as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
@@ -38,7 +38,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache(undefined as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
@@ -52,7 +52,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: null as unknown as string,
                 LRUCacheOptions: {},
@@ -70,7 +70,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "",
                 LRUCacheOptions: {},
@@ -88,7 +88,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: null as unknown as LRUCache.Options<string, string>,
@@ -106,7 +106,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { },
@@ -128,7 +128,7 @@ describe("rabbit-lru-cache", () => {
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -187,7 +187,7 @@ describe("rabbit-lru-cache", () => {
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -262,7 +262,7 @@ describe("rabbit-lru-cache", () => {
         expect.assertions(2);
         const name = `test-${uuid.v1()}`;
         const LRUCacheOptions = {};
-        const createRabbitLRUCache = requireRabbitLRUCache();
+        const createRabbitLRUCache = requireRabbitLRUCache<string>();
         const cache = await createRabbitLRUCache({
             name,
             LRUCacheOptions,
@@ -290,7 +290,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -316,7 +316,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
-            const createRabbitLRUCache = requireRabbitLRUCache();
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -333,7 +333,6 @@ describe("rabbit-lru-cache", () => {
             });
             const connectionError = Error("RabbitMq is gone")
             const onReconnectingEvent = function(error, attempt, retryTime): void {
-                expect(error).toBe("");
                 expect(attempt).toBe(1);
                 expect(retryTime).toBe(0);
                 resolvePromiseReconnectingEventTriggered();
@@ -370,7 +369,7 @@ describe("rabbit-lru-cache", () => {
                 max: 1000
             };
             try {
-                const createRabbitLRUCache = requireRabbitLRUCache();
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
@@ -398,7 +397,7 @@ describe("rabbit-lru-cache", () => {
                 maxAge: 100
             };
             try {
-                const createRabbitLRUCache = requireRabbitLRUCache();
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
@@ -426,7 +425,7 @@ describe("rabbit-lru-cache", () => {
                 stale: true
             };
             try {
-                const createRabbitLRUCache = requireRabbitLRUCache();
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
