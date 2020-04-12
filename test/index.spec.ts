@@ -1,10 +1,11 @@
 import { RabbitLRUCache, RabbitLRUCacheOptions } from "../src/rabbit-lru-cache";
 import * as uuid from "uuid";
-import { Options } from "amqplib";
+import { Options, Message, MessageFields } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
 import { amqplibMock, consumer, emitter, publish, connectMock } from "./amqplib-mock";
+import { LRUCacheMock, delMock, resetMock } from "./lru-cache-mock";
 
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
@@ -284,16 +285,14 @@ describe("rabbit-lru-cache", () => {
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
         expect.assertions(2);
-        const name = `test-${uuid.v1()}`;
-        const LRUCacheOptions = {};
         let cache;
 
         // Act
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
-                name,
-                LRUCacheOptions,
+                name: "test",
+                LRUCacheOptions: {},
                 amqpConnectOptions
             });
             consumer.onMessage(null);
@@ -306,19 +305,51 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should do nothing if invalidation consume message is unknown", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        jest.mock("lru-cache", () => LRUCacheMock);
+        let cache;
+
+        // Act
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions
+            });
+            consumer.onMessage({
+                content: Buffer.from("unknown"),
+                properties: {
+                    headers: {
+                        "x-cache-id": "unknown"
+                    }
+                } as unknown as Message["properties"],
+                fields: {} as unknown as MessageFields
+            });
+
+            expect(delMock).toHaveBeenCalledTimes(0);
+            expect(resetMock).toHaveBeenCalledTimes(0);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+            jest.unmock("lru-cache");
+        }
+    });
+
     it("should reconnect on connection error", async () => {
         // Arrange
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
-        const name = `test-${uuid.v1()}`;
-        const LRUCacheOptions = {};
         let cache;
 
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
-                name,
-                LRUCacheOptions,
+                name: "test",
+                LRUCacheOptions: {},
                 amqpConnectOptions
             });
 
@@ -374,15 +405,13 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
-        const name = `test-${uuid.v1()}`;
-        const LRUCacheOptions = {};
         let cache;
 
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
-                name,
-                LRUCacheOptions,
+                name: "test",
+                LRUCacheOptions: {},
                 amqpConnectOptions
             });
 
@@ -431,15 +460,13 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
-        const name = `test-${uuid.v1()}`;
-        const LRUCacheOptions = {};
         let cache;
 
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
-                name,
-                LRUCacheOptions,
+                name: "test",
+                LRUCacheOptions: {},
                 amqpConnectOptions,
                 reconnectionOptions: {
                     retryIntervalIncrease: 1,

@@ -41,8 +41,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     const eventEmitter = new EventEmitter();
     let closing = false;
     let reconnecting = false;
+
     const cacheId = uuid.v1();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
+
     let connection: Connection;
     let publisherChannel: Channel, subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
@@ -152,6 +154,13 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             publish("reset");
             cache.reset();
         },
+        set(key: string, value: T): boolean {
+            assertIsClosingOrClosed();
+            if (reconnecting) {
+                return false;
+            }
+            return cache.set(key, value);
+        },
         get: assertIsClosingOrClosedDecorator(cache.get.bind(cache)),
         prune: assertIsClosingOrClosedDecorator(cache.prune.bind(cache)),
         dump: assertIsClosingOrClosedDecorator(cache.dump.bind(cache)),
@@ -161,13 +170,6 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         keys: assertIsClosingOrClosedDecorator(cache.keys.bind(cache)),
         load: assertIsClosingOrClosedDecorator(cache.load.bind(cache)),
         peek: assertIsClosingOrClosedDecorator(cache.peek.bind(cache)),
-        set(key: string, value: T): boolean {
-            assertIsClosingOrClosed();
-            if (reconnecting) {
-                return false;
-            }
-            return cache.set(key, value);
-        },
         rforEach: assertIsClosingOrClosedDecorator(cache.rforEach.bind(cache)),
         lengthCalculator: assertIsClosingOrClosedDecorator(cache.lengthCalculator.bind(cache)),
         doesAllowStale(): boolean {
