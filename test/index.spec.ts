@@ -361,7 +361,7 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
-    it("should reset cache, and turn off cache when reconnecting", async () => {
+    it("should reset cache, and turn off cache while reconnecting", async () => {
         // Arrange
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
