@@ -15,7 +15,31 @@ An experimental lib to invalidate lru cache keys in distributed systems powered 
 
 This library is powered by lru-cache and amqplib (both peer dependencies).
 
-
+```
+    const cache = await createRabbitLRUCache({
+        name: "example",
+        LRUCacheOptions: {
+            maxAge: 120
+        },
+        amqpConnectOptions: {
+            hostname: process.env.RABBITMQ_HOSTNAME || "localhost",
+            username: process.env.RABBITMQ_USERNAME || "guest",
+            password: process.env.RABBITMQ_PASSWORD || "guest"
+        }
+    });
+    cache.addInvalidationMessageReceivedListener((content, publisherCacheId) => {
+        console.log("Cache Message", "publisherCacheId", publisherCacheId, "content", content);
+    });
+    cache.addReconnectingListener((error, attempt, retryInterval) => {
+        console.info("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    });
+    cache.addReconnectedListener((error, attempt, retryInterval) => {
+        console.info("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    });
+    
+    cache.set("key", 5);
+    cache.del("key");
+```
 
 Every time the lru-cache **del** or **reset** function is called a message is published in a fanout exchange and each cache subscribers consume the message to invalidate the corresponding key or the entire cache.
 
