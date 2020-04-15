@@ -2,6 +2,13 @@ node_modules/
 src/
 test/
 coverage/
+examples/
+.github/
+.vscode/
 tsconfig.json
 .gitignore
 jest.config.js
+.eslintignore
+.eslintrc
+README.md
+docker-compose.yaml
