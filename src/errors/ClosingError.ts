@@ -1,5 +1,5 @@
 export class ClosingError extends Error {
-    constructor(message) {
+    constructor(message: string) {
         super(message);
     }
 }
