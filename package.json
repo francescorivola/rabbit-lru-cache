@@ -1,6 +1,6 @@
 {
   "name": "rabbit-lru-cache",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "An experimental lib to invalidate lru cache keys in distributed systems powered by rabbitmq.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
