@@ -47,6 +47,6 @@
     "lru-cache": "^5.1.1"
   },
   "dependencies": {
-    "uuid": "^7.0.3"
+    "uuid": "^8.0.0"
   }
 }
