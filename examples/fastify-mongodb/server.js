@@ -5,7 +5,10 @@ const serverId = process.env.SERVER_ID || new ObjectId().toHexString();
 
 async function start() {
   try {
-    const client = await connect(process.env.MONGODB_URI || "mongodb://localhost:27017", { useNewUrlParser: true, useUnifiedTopology: true});
+    const client = await connect(process.env.MONGODB_URI || "mongodb://localhost:27017", {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
     const db = client.db("example");
     const items = db.collection("items");
     const cache = await createRabbitLRUCache({
