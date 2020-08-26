@@ -238,6 +238,124 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should return the item but not stored in cache if while loading item del function is called", async () => {
+        // Arrange
+        let cache1: RabbitLRUCache<string> | null = null;
+        let cache2: RabbitLRUCache<string> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        let promiseCache2Resolve;
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache1 = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+            cache2 = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+            const promiseCache2GetTheMessage = new Promise(resolve => {
+                promiseCache2Resolve = resolve;
+                cache2?.addInvalidationMessageReceivedListener(resolve);
+            });
+
+            let resolvePromiseLoadedItem1;
+            let resolvePromiseLoadedItem2;
+
+            // Act
+            await Promise.all([
+                cache1.getItem("KEY_A", () => new Promise<string>(resolve => {
+                    resolvePromiseLoadedItem1 = resolve;
+                })),
+                cache2.getItem("KEY_A", () => new Promise<string>(resolve => {
+                    resolvePromiseLoadedItem2 = resolve;
+                })),
+                new Promise(resolve => {
+                    cache1?.del("KEY_A");
+                    resolvePromiseLoadedItem1("VALUE_A");
+                    promiseCache2GetTheMessage.then(() => {
+                        resolvePromiseLoadedItem2("VALUE_A");
+                        resolve();
+                    });
+                })
+            ]);
+
+            // Assert     
+            expect(cache1.keys()).toStrictEqual([]);
+            expect(await cache1.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(cache1.keys()).toStrictEqual(["KEY_A"]);
+            expect(cache2.keys()).toStrictEqual([]);
+            expect(await cache2.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(cache2.keys()).toStrictEqual(["KEY_A"]);
+        } finally {
+            await cache1?.close();
+            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
+            await cache2?.close();
+        }
+    });
+
+    it("should return the item but not stored in cache if while loading item reset function is called", async () => {
+        // Arrange
+        let cache1: RabbitLRUCache<string> | null = null;
+        let cache2: RabbitLRUCache<string> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        let promiseCache2Resolve;
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache1 = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+            cache2 = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+            const promiseCache2GetTheMessage = new Promise(resolve => {
+                promiseCache2Resolve = resolve;
+                cache2?.addInvalidationMessageReceivedListener(resolve);
+            });
+
+            let resolvePromiseLoadedItem1;
+            let resolvePromiseLoadedItem2;
+
+            // Act
+            await Promise.all([
+                cache1.getItem("KEY_A", () => new Promise<string>(resolve => {
+                    resolvePromiseLoadedItem1 = resolve;
+                })),
+                cache2.getItem("KEY_A", () => new Promise<string>(resolve => {
+                    resolvePromiseLoadedItem2 = resolve;
+                })),
+                new Promise(resolve => {
+                    cache1?.reset();
+                    resolvePromiseLoadedItem1("VALUE_A");
+                    promiseCache2GetTheMessage.then(() => {
+                        resolvePromiseLoadedItem2("VALUE_A");
+                        resolve();
+                    });
+                })
+            ]);
+
+            // Assert     
+            expect(cache1.keys()).toStrictEqual([]);
+            expect(await cache1.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(cache1.keys()).toStrictEqual(["KEY_A"]);
+            expect(cache2.keys()).toStrictEqual([]);
+            expect(await cache2.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(cache2.keys()).toStrictEqual(["KEY_A"]);
+        } finally {
+            await cache1?.close();
+            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
+            await cache2?.close();
+        }
+    });
+
     it("should invalidate all cache keys on reset", async () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;

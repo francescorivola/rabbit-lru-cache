@@ -54,6 +54,20 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let publisherChannel: Channel, subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
 
+    let loadItemPromises: { [key: string]: Promise<T> } = {};
+
+    function internalReset(): void {
+        loadItemPromises = {};
+        cache.reset();
+    }
+
+    function internalDel(key: string): void {
+        if (loadItemPromises[key]) {
+            delete loadItemPromises[key];
+        }
+        cache.del(key);
+    }
+
     async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): Promise<Connection> {
         const connection = await connect(options);
         connection.removeAllListeners("error");
@@ -69,7 +83,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         return channel;
     }
 
-    async function createConsumer(connection: Connection, exchangeName: string, cacheId: string, cache: LRUCache<string, T>): Promise<Channel> {
+    async function createConsumer(connection: Connection, exchangeName: string, cacheId: string): Promise<Channel> {
         const channel = await connection.createChannel();
         const queueName = `${exchangeName}-${cacheId}`;
         await channel.assertQueue(queueName, {
@@ -88,10 +102,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             }
             const content = msg.content.toString();
             if (content === "reset") {
-                cache.reset();
+                internalReset();
             } else if (content.startsWith("del:")) {
                 const key = content.substring(4);
-                cache.del(key);
+                internalDel(key);
             }
             eventEmitter.emit("invalidation-message-received", content, publisherCacheId);
         }, { exclusive: true, noAck: true, consumerTag: cacheId });
@@ -107,11 +121,11 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         try {
             attempt++;
             reconnecting = true;
-            cache.reset();
+            internalReset();
             eventEmitter.emit("reconnecting", error, attempt, retryInterval);
             connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
-            subscriberChannel = await createConsumer(connection, exchangeName, cacheId, cache);
+            subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
             reconnecting = false;
             eventEmitter.emit("reconnected", error, attempt, retryInterval);
         } catch(error) {
@@ -124,7 +138,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
 
     connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
     publisherChannel = await createPublisher(connection, exchangeName);
-    subscriberChannel = await createConsumer(connection, exchangeName, cacheId, cache);
+    subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
 
     function assertIsClosingOrClosed(): void {
         if (closing) {
@@ -148,18 +162,16 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         }});
     }
 
-    const loadItemPromises: { [key: string]: Promise<T> } = {};
-
     return {
         del(key: string): void {
             assertIsClosingOrClosed();
             publish(`del:${key}`);
-            cache.del(key);
+            internalDel(key);
         },
         reset(): void {
             assertIsClosingOrClosed();
             publish("reset");
-            cache.reset();
+            internalReset();
         },
         async getItem(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
             assertIsClosingOrClosed();
@@ -173,12 +185,14 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             loadItemPromises[key] = loadItem(key);
             try {
                 const loadedItem = await loadItemPromises[key];
-                if (!reconnecting) {
+                if (!reconnecting && loadItemPromises[key]) {
                     cache.set(key, loadedItem);
                 }
                 return loadedItem;
             } finally {
-                delete loadItemPromises[key];
+                if (loadItemPromises[key]) {
+                    delete loadItemPromises[key];
+                }
             }
         },
         has: assertIsClosingOrClosedDecorator(cache.has.bind(cache)),
