@@ -34,7 +34,7 @@ async function start() {
         const { id } = request.params;
         reply.header("X-Server-Id", serverId);
         let cacheStatus = "HIT";
-        const item = await cache.get(id, () => {
+        const item = await cache.getOrLoad(id, () => {
             cacheStatus = "MISS";
             return items.findOne({ _id: id });
         });
