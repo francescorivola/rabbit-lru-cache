@@ -21,7 +21,7 @@ const createRabbitLRUCache = require("rabbit-lru-cache").default;
 const cache = await createRabbitLRUCache({
     name: "example",
     LRUCacheOptions: {
-        maxAge: 120
+        maxAge: 120000
     },
     amqpConnectOptions: {
         hostname: "localhost",
