@@ -33,19 +33,17 @@ async function start() {
     fastify.get("/items/:id", async (request, reply) => {
         const { id } = request.params;
         reply.header("X-Server-Id", serverId);
-        const cachedItem = cache.get(id);
-        if (cachedItem) {
-            reply.header("X-Cache", "HIT");
-            return cachedItem;
-        }
-        const item = await items.findOne({ _id: id });
+        let cacheStatus = "HIT";
+        const item = await cache.get(id, () => {
+            cacheStatus = "MISS";
+            return items.findOne({ _id: id });
+        });
         if (!item) {
             reply.header("X-Cache", "MISS");
             reply.status(404).send();
             return;
-        }
-        cache.set(id, item);
-        reply.header("X-Cache", "MISS");
+        }            
+        reply.header("X-Cache", cacheStatus);
         return item;
     });
 

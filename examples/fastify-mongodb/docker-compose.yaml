@@ -25,7 +25,7 @@ services:
       - server2
       - server3
   server1:
-    image: node:latest
+    image: node:14.8.0
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
@@ -42,7 +42,7 @@ services:
       - rabbitmq
       - mongodb
   server2:
-    image: node:latest
+    image: node:14.8.0
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
@@ -59,7 +59,7 @@ services:
       - rabbitmq
       - mongodb
   server3:
-    image: node:latest
+    image: node:14.8.0
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
