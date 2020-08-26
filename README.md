@@ -39,7 +39,7 @@ cache.addReconnectedListener((error, attempt, retryInterval) => {
     console.log("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
 });
     
-await cache.get("key", () => Promise.resolve(5));
+await cache.getOrLoad("key", () => Promise.resolve(5));
 cache.del("key");
 
 await cache.close(); // gracefully shutdown RabbitMq connection

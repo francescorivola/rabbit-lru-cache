@@ -13,7 +13,7 @@ export type RabbitLRUCache<T> = {
     getLength: () => number;
     getMax: () => number;
     getMaxAge: () => number;
-    get: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
+    getOrLoad: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
     has: (key: string) => boolean;
     keys: () => string[];
     del: (key: string) => void;
@@ -182,14 +182,14 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             internalReset();
         },
         /**
-         * This function checks if the item is in the cache and if so returns it.
-         * In case the item is not in the cache it invokes the loadItem function to retrieve the item based on key.
+         * This function checks if the item is in the cache and if so returns it, otherwise 
+         * it invokes the loadItem function to retrieve the item and then it stores it in the cache.
          *
          * @param {string} key
          * @param {(key: string) => Promise<T>} loadItem
          * @returns {Promise<T>}
          */
-        async get(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
+        async getOrLoad(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
             assertIsClosingOrClosed();
             const item = cache.get(key);
             if (item) {
