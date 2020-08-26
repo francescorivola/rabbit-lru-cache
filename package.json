@@ -4,6 +4,9 @@
   "description": "An experimental lib to invalidate lru cache keys in distributed systems powered by rabbitmq.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "engines": {
+    "node": ">=12.13.0"
+  },
   "scripts": {
     "test": "jest --watchAll",
     "test-ci": "jest",
