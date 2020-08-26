@@ -153,9 +153,9 @@ describe("rabbit-lru-cache", () => {
                 promiseCache3Resolve = resolve;
                 cache3?.addInvalidationMessageReceivedListener(resolve);
             });
-            expect(await cache1.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache2.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache3.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(await cache1.getItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(await cache2.getItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(await cache3.getItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
 
             // Act
             cache1.del("KEY_A");
@@ -163,9 +163,9 @@ describe("rabbit-lru-cache", () => {
             // Assert
             await promiseCache2GetTheMessage;
             await promiseCache3GetTheMessage;
-            expect(await cache1.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache2.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache3.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(await cache1.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(await cache2.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(await cache3.getItem("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
         } finally {
             await cache1?.close();
             cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
@@ -175,7 +175,7 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
-    it("should await on the same promise if multiple calls to the getOrLoadAndSetItem are done while loading the item", async () => {
+    it("should await on the same promise if multiple calls to the getItem are done while loading the item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
@@ -191,9 +191,9 @@ describe("rabbit-lru-cache", () => {
 
             // Act
             const results = await Promise.all([
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise),
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise),
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise)
+                cache.getItem("KEY_A", loadPromise),
+                cache.getItem("KEY_A", loadPromise),
+                cache.getItem("KEY_A", loadPromise)
             ]);
 
             // Assert
@@ -205,7 +205,7 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
-    it("should await and reject on the same promise if multiple calls to the getOrLoadAndSetItem are done while loading the item", async () => {
+    it("should await and reject on the same promise if multiple calls to the getItem are done while loading the item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${uuid.v1()}`;
@@ -222,9 +222,9 @@ describe("rabbit-lru-cache", () => {
 
             // Act
             const results = await Promise.allSettled([
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise),
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise),
-                cache.getOrLoadAndSetItem("KEY_A", loadPromise)
+                cache.getItem("KEY_A", loadPromise),
+                cache.getItem("KEY_A", loadPromise),
+                cache.getItem("KEY_A", loadPromise)
             ]);
 
             // Assert     
@@ -274,9 +274,9 @@ describe("rabbit-lru-cache", () => {
             });
             for(let i = 0; i < 1000; i++) {
                 const key = `KEY_${i}`;
-                expect(await cache1.getOrLoadAndSetItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-                expect(await cache2.getOrLoadAndSetItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-                expect(await cache3.getOrLoadAndSetItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+                expect(await cache1.getItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+                expect(await cache2.getItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+                expect(await cache3.getItem(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
             }
             expect(cache1.getLength()).toBe(1000);
             expect(cache1.getItemCount()).toBe(1000);
@@ -324,7 +324,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            expect(await cache.getOrLoadAndSetItem("KEY", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(await cache.getItem("KEY", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
         } catch(error) {
             expect(error instanceof ClosingError).toBe(true);
             expect(error.message).toBe("Cache is closing or has been closed");
@@ -477,18 +477,18 @@ describe("rabbit-lru-cache", () => {
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
-            expect(await cache.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache.getOrLoadAndSetItem("KEY_B", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache.getOrLoadAndSetItem("KEY_C", () => Promise.resolve("VALUE_C"))).toBe("VALUE_C");
+            expect(await cache.getItem("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(await cache.getItem("KEY_B", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(await cache.getItem("KEY_C", () => Promise.resolve("VALUE_C"))).toBe("VALUE_C");
 
             emitter.emitError(connectionError);
 
-            expect(await cache.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
-            expect(await cache.getOrLoadAndSetItem("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
-            expect(await cache.getOrLoadAndSetItem("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
-            expect(await cache.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A3"))).toBe("VALUE_A3");
-            expect(await cache.getOrLoadAndSetItem("KEY_B", () => Promise.resolve("VALUE_B3"))).toBe("VALUE_B3");
-            expect(await cache.getOrLoadAndSetItem("KEY_C", () => Promise.resolve("VALUE_C3"))).toBe("VALUE_C3");
+            expect(await cache.getItem("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
+            expect(await cache.getItem("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
+            expect(await cache.getItem("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
+            expect(await cache.getItem("KEY_A", () => Promise.resolve("VALUE_A3"))).toBe("VALUE_A3");
+            expect(await cache.getItem("KEY_B", () => Promise.resolve("VALUE_B3"))).toBe("VALUE_B3");
+            expect(await cache.getItem("KEY_C", () => Promise.resolve("VALUE_C3"))).toBe("VALUE_C3");
             expect(cache.getLength()).toBe(0);
             cache.del("KEY_A");
             expect(publish).toHaveBeenCalledTimes(0);
@@ -496,12 +496,12 @@ describe("rabbit-lru-cache", () => {
             await promiseReconnectedEventTriggered;
             cache.removeReconnectedListener(onReconnectedEvent);
 
-            expect(await cache.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A4"))).toBe("VALUE_A4");
-            expect(await cache.getOrLoadAndSetItem("KEY_B", () => Promise.resolve("VALUE_B4"))).toBe("VALUE_B4");
-            expect(await cache.getOrLoadAndSetItem("KEY_C", () => Promise.resolve("VALUE_C4"))).toBe("VALUE_C4");
-            expect(await cache.getOrLoadAndSetItem("KEY_A", () => Promise.resolve("VALUE_A5"))).toBe("VALUE_A4");
-            expect(await cache.getOrLoadAndSetItem("KEY_B", () => Promise.resolve("VALUE_B5"))).toBe("VALUE_B4");
-            expect(await cache.getOrLoadAndSetItem("KEY_C", () => Promise.resolve("VALUE_C5"))).toBe("VALUE_C4");
+            expect(await cache.getItem("KEY_A", () => Promise.resolve("VALUE_A4"))).toBe("VALUE_A4");
+            expect(await cache.getItem("KEY_B", () => Promise.resolve("VALUE_B4"))).toBe("VALUE_B4");
+            expect(await cache.getItem("KEY_C", () => Promise.resolve("VALUE_C4"))).toBe("VALUE_C4");
+            expect(await cache.getItem("KEY_A", () => Promise.resolve("VALUE_A5"))).toBe("VALUE_A4");
+            expect(await cache.getItem("KEY_B", () => Promise.resolve("VALUE_B5"))).toBe("VALUE_B4");
+            expect(await cache.getItem("KEY_C", () => Promise.resolve("VALUE_C5"))).toBe("VALUE_C4");
             cache.del("KEY_A");
             expect(publish).toHaveBeenCalledTimes(1);
 

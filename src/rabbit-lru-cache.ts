@@ -13,7 +13,7 @@ export type RabbitLRUCache<T> = {
     getLength: () => number;
     getMax: () => number;
     getMaxAge: () => number;
-    getOrLoadAndSetItem: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
+    getItem: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
     has: (key: string) => boolean;
     keys: () => string[];
     del: (key: string) => void;
@@ -161,7 +161,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             publish("reset");
             cache.reset();
         },
-        async getOrLoadAndSetItem(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
+        async getItem(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
             assertIsClosingOrClosed();
             const item = cache.get(key);
             if (item) {
