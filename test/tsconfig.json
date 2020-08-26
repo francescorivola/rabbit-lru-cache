@@ -1,0 +1,12 @@
+{
+    "include": [
+        "../src/**/*.ts",
+        "./**/*.ts"
+    ],
+    "extends": "../tsconfig",
+    "compilerOptions": {
+        "lib": [
+            "es2020"
+        ]
+    }
+}

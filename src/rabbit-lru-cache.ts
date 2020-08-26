@@ -13,13 +13,18 @@ export type RabbitLRUCache<T> = {
     getLength: () => number;
     getMax: () => number;
     getMaxAge: () => number;
+    getOrLoadAndSetItem: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
+    has: (key: string) => boolean;
+    keys: () => string[];
+    del: (key: string) => void;
+    reset: () => void;
     addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
     removeReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
     addReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
     removeReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
-} & Omit<LRUCache<string, T>, "itemCount" | "length" | "allowStale" | "max" | "maxAge">;
+};
 
 export type RabbitLRUCacheOptions<T> = {
     name: string;
@@ -143,6 +148,8 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         }});
     }
 
+    const loadItemPromises: { [key: string]: Promise<T> } = {};
+
     return {
         del(key: string): void {
             assertIsClosingOrClosed();
@@ -154,24 +161,28 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             publish("reset");
             cache.reset();
         },
-        set(key: string, value: T): boolean {
+        async getOrLoadAndSetItem(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
             assertIsClosingOrClosed();
-            if (reconnecting) {
-                return false;
+            const item = cache.get(key);
+            if (item) {
+                return item;
             }
-            return cache.set(key, value);
+            if (loadItemPromises[key]) {
+                return loadItemPromises[key];
+            }
+            loadItemPromises[key] = loadItem(key);
+            try {
+                const loadedItem = await loadItemPromises[key];
+                if (!reconnecting) {
+                    cache.set(key, loadedItem);
+                }
+                return loadedItem;
+            } finally {
+                delete loadItemPromises[key];
+            }
         },
-        get: assertIsClosingOrClosedDecorator(cache.get.bind(cache)),
-        prune: assertIsClosingOrClosedDecorator(cache.prune.bind(cache)),
-        dump: assertIsClosingOrClosedDecorator(cache.dump.bind(cache)),
-        values: assertIsClosingOrClosedDecorator(cache.values.bind(cache)),
         has: assertIsClosingOrClosedDecorator(cache.has.bind(cache)),
-        forEach: assertIsClosingOrClosedDecorator(cache.forEach.bind(cache)),
         keys: assertIsClosingOrClosedDecorator(cache.keys.bind(cache)),
-        load: assertIsClosingOrClosedDecorator(cache.load.bind(cache)),
-        peek: assertIsClosingOrClosedDecorator(cache.peek.bind(cache)),
-        rforEach: assertIsClosingOrClosedDecorator(cache.rforEach.bind(cache)),
-        lengthCalculator: assertIsClosingOrClosedDecorator(cache.lengthCalculator.bind(cache)),
         doesAllowStale(): boolean {
             assertIsClosingOrClosed();
             return cache.allowStale;
