@@ -192,7 +192,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         async getOrLoad(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
             assertIsClosingOrClosed();
             const item = cache.get(key);
-            if (item) {
+            if (item !== undefined && item !== null) {
                 return item;
             }
             if (loadItemPromises[key]) {
@@ -201,7 +201,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             loadItemPromises[key] = loadItem(key);
             try {
                 const loadedItem = await loadItemPromises[key];
-                if (!reconnecting && loadItemPromises[key]) {
+                if (!reconnecting && loadItemPromises[key] && (loadedItem !== undefined && loadedItem !== null)) {
                     cache.set(key, loadedItem);
                 }
                 return loadedItem;

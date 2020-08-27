@@ -175,6 +175,116 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should not cache undefined results from load item", async () => {
+        // Arrange
+        let cache: RabbitLRUCache<string> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            // Act
+            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(undefined as unknown as string));
+
+            // Assert
+            expect(result1).toBe(undefined);
+            expect(cache.getItemCount()).toBe(0);
+
+            // Act
+            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('VALUE_A'));
+            expect(result2).toBe('VALUE_A');
+            expect(cache.getItemCount()).toBe(1);
+        } finally {
+            await cache?.close();
+        }
+    });
+
+    it("should not cache null results from load item", async () => {
+        // Arrange
+        let cache: RabbitLRUCache<string> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            // Act
+            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(null as unknown as string));
+
+            // Assert
+            expect(result1).toBe(null);
+            expect(cache.getItemCount()).toBe(0);
+
+            // Act
+            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('VALUE_A'));
+            expect(result2).toBe('VALUE_A');
+            expect(cache.getItemCount()).toBe(1);
+        } finally {
+            await cache?.close();
+        }
+    });
+
+    it("should cache empty string results from load item", async () => {
+        // Arrange
+        let cache: RabbitLRUCache<string> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            // Act
+            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(''));
+            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('A'));
+
+            // Assert
+            expect(result1).toBe('');
+            expect(result2).toBe('');
+            expect(cache.getItemCount()).toBe(1);
+        } finally {
+            await cache?.close();
+        }
+    });
+
+    it("should cache 0 number results from load item", async () => {
+        // Arrange
+        let cache: RabbitLRUCache<number> | null = null;
+        const name = `test-${uuid.v1()}`;
+        const LRUCacheOptions = {};
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<number>();
+            cache = await createRabbitLRUCache({
+                name,
+                LRUCacheOptions,
+                amqpConnectOptions
+            });
+
+            // Act
+            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(0));
+            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve(1));
+
+            // Assert
+            expect(result1).toBe(0);
+            expect(result2).toBe(0);
+            expect(cache.getItemCount()).toBe(1);
+        } finally {
+            await cache?.close();
+        }
+    });
+
     it("should await on the same promise if multiple calls to the getItem are done while loading the item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
