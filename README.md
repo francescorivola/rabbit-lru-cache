@@ -51,7 +51,7 @@ The lib handles RabbitMq connection errors and it reconnects automatically if th
 
 ## Examples
 
-Examples of the usage of this lib can be found in test folder or examples folder.
+Examples of the usage of this lib can be found in test folder or [examples](./examples) folder.
 
 ## License
 
