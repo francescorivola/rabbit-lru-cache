@@ -1,5 +1,5 @@
 # rabbit-lru-cache
-An experimental lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
+A lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 
 [ ![Npm Version](https://badge.fury.io/js/rabbit-lru-cache.svg)](https://www.npmjs.com/package/rabbit-lru-cache)
 [![Actions Status](https://github.com/francescorivola/rabbit-lru-cache/workflows/Node%20CI/badge.svg)](https://github.com/francescorivola/rabbit-lru-cache/actions)
