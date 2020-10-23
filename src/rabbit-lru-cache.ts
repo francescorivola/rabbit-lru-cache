@@ -18,6 +18,7 @@ export type RabbitLRUCache<T> = {
     keys: () => string[];
     del: (key: string) => void;
     reset: () => void;
+    prune: () => void;
     addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
     addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
@@ -242,6 +243,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             ]);
             await connection.close();
             cache.reset();
+        },
+        prune() {
+            assertIsClosingOrClosed();
+            cache.prune();
         },
         addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
             eventEmitter.addListener("invalidation-message-received", fn);

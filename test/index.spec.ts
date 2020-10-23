@@ -848,6 +848,38 @@ describe("rabbit-lru-cache", () => {
         });
     });
 
+    describe("prune()", () => {
+
+        it("should prune expired items in the LRU cache", async () => {
+            // Arrange
+            let cache: RabbitLRUCache<string> | null = null;
+            const name = `test-${uuid.v1()}`;
+            const LRUCacheOptions = {
+                maxAge: 1
+            };
+            try {
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
+                cache = await createRabbitLRUCache({
+                    name,
+                    LRUCacheOptions,
+                    amqpConnectOptions
+                });
+
+                // Act
+                await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"));
+                expect(cache.getItemCount()).toBe(1);
+                await new Promise(resolve => setTimeout(resolve, 2));
+                expect(cache.getItemCount()).toBe(1);
+                cache.prune();
+
+                // Assert
+                expect(cache.getItemCount()).toBe(0);
+            } finally {
+                await cache?.close();
+            }
+        });
+    });
+
     describe("doesAllowStale()", () => {
 
         it("should return the LRU cache stale value", async () => {
