@@ -47,9 +47,9 @@ await cache.close(); // gracefully shutdown RabbitMq connection
 
 Every time the lru-cache **del** or **reset** function is called a message is published in a fan out exchange and each cache subscribers consume the message to invalidate the corresponding key or the entire cache.
 
-The lib handles RabbitMq connection errors and it reconnects automatically if the connection with the broker got lost. During reconnection the local cache get resetted and cache is disabled to ensure it does not store stale data.
-
 The **getOrLoad** function forces you to set item in cache only after loading it, avoiding a wrong usage of the library as, for instance, set in cache an item after modifying it instead of invalidate the cache (calling the **del** function). Finally, this function comes with concurrency mechanism to avoid stale data and [Thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) by use the same promise for concurrent requests of the same cache key while the corresponding item is not loaded in cache yet.
+
+The lib handles RabbitMq connection errors and it reconnects automatically if the connection with the broker got lost. During reconnection the local cache get resetted and cache is disabled to ensure it does not store stale data.
 
 ## Examples
 
