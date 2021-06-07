@@ -15,7 +15,7 @@
     "rabbit-lru-cache": "0.1.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.5.13",
+    "@types/amqplib": "^0.8.0",
     "@types/lru-cache": "^5.1.0",
     "@types/mongodb": "^3.5.5"
   }
