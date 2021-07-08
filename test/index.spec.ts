@@ -739,6 +739,52 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should reset cache twice, one before and the other one after reconnecting", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        jest.mock("lru-cache", () => LRUCacheMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions
+            });
+
+            let resolvePromiseReconnectingEventTriggered;
+            const promiseReconnectingEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectingEventTriggered = resolve;
+            });
+            const onReconnectingEvent = function(): void {
+                resolvePromiseReconnectingEventTriggered();
+            }
+            cache.addReconnectingListener(onReconnectingEvent);
+
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            const connectionError = Error("RabbitMq is gone");
+            emitter.emitError(connectionError);
+            await promiseReconnectingEventTriggered;
+            expect(resetMock).toHaveBeenCalledTimes(1);
+            await promiseReconnectedEventTriggered;
+            expect(resetMock).toHaveBeenCalledTimes(2);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+            jest.unmock("lru-cache");
+        }
+    });
+
     it("should allow stale data while reconnecting if allowStaleData is enabled", async () => {
         // Arrange
         jest.clearAllMocks().resetModules();

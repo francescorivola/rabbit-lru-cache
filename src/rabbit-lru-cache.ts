@@ -129,6 +129,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
             reconnecting = false;
+            internalReset();
             eventEmitter.emit("reconnected", error, attempt, retryInterval);
         } catch(error) {
             if (retryInterval < retryIntervalUpTo) {
