@@ -802,13 +802,7 @@ describe("rabbit-lru-cache", () => {
                 }
             });
 
-            let resolvePromiseReconnectedEventTriggered;
             const connectionError = Error("RabbitMq is gone")
-            const onReconnectedEvent = function(): void {
-                resolvePromiseReconnectedEventTriggered();
-            }
-            cache.addReconnectedListener(onReconnectedEvent);
-
             emitter.emitError(connectionError);
 
             expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
