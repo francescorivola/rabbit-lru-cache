@@ -739,6 +739,88 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should reset cache twice, one before and the other one after reconnecting", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        jest.mock("lru-cache", () => LRUCacheMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions
+            });
+
+            let resolvePromiseReconnectingEventTriggered;
+            const promiseReconnectingEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectingEventTriggered = resolve;
+            });
+            const onReconnectingEvent = function(): void {
+                resolvePromiseReconnectingEventTriggered();
+            }
+            cache.addReconnectingListener(onReconnectingEvent);
+
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            const connectionError = Error("RabbitMq is gone");
+            emitter.emitError(connectionError);
+            await promiseReconnectingEventTriggered;
+            expect(resetMock).toHaveBeenCalledTimes(1);
+            await promiseReconnectedEventTriggered;
+            expect(resetMock).toHaveBeenCalledTimes(2);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+            jest.unmock("lru-cache");
+        }
+    });
+
+    it("should allow stale data while reconnecting if allowStaleData is enabled", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions,
+                reconnectionOptions: {
+                    allowStaleData: true
+                }
+            });
+
+            const connectionError = Error("RabbitMq is gone")
+            emitter.emitError(connectionError);
+
+            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
+            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
+            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
+            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_A2");
+            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_B2");
+            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_C2");
+
+            cache.del("KEY_A");
+            expect(publish).toHaveBeenCalledTimes(0);
+
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
     it("should retry reconnection on reconnection error", async () => {
         // Arrange
         jest.clearAllMocks().resetModules();
