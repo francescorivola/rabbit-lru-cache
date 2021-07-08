@@ -739,6 +739,48 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should allow stale data while reconnecting if allowStaleData is enabled", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions,
+                reconnectionOptions: {
+                    allowStaleData: true
+                }
+            });
+
+            let resolvePromiseReconnectedEventTriggered;
+            const connectionError = Error("RabbitMq is gone")
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            emitter.emitError(connectionError);
+
+            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
+            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
+            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
+            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_A2");
+            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_B2");
+            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_C2");
+
+            cache.del("KEY_A");
+            expect(publish).toHaveBeenCalledTimes(0);
+
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
     it("should retry reconnection on reconnection error", async () => {
         // Arrange
         jest.clearAllMocks().resetModules();

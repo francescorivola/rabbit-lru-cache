@@ -32,6 +32,7 @@ export type RabbitLRUCacheOptions<T> = {
     LRUCacheOptions: LRUCache.Options<string, T>;
     amqpConnectOptions: Options.Connect;
     reconnectionOptions?: {
+        allowStaleData?: boolean;
         retryIntervalUpTo?: number;
         retryIntervalIncrease?: number;
     };
@@ -202,7 +203,9 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             loadItemPromises[key] = loadItem(key);
             try {
                 const loadedItem = await loadItemPromises[key];
-                if (!reconnecting && loadItemPromises[key] && (loadedItem !== undefined && loadedItem !== null)) {
+                if ((options.reconnectionOptions?.allowStaleData || !reconnecting) && 
+                    loadItemPromises[key] && 
+                    (loadedItem !== undefined && loadedItem !== null)) {
                     cache.set(key, loadedItem);
                 }
                 return loadedItem;
