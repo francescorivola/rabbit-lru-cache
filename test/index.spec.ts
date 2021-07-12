@@ -119,6 +119,27 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
+    it("should throw an assert error if options.reconnectionOptions.retryMethod is not 'exponential' neither 'increment'", async () => {
+        // Arrange
+        expect.assertions(2);
+
+        // Act
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: { },
+                amqpConnectOptions,
+                reconnectionOptions: {
+                    retryMethod: "non-existing-retry-method" as any
+                }
+            });
+        } catch(error) {
+            expect(error instanceof AssertionError).toBe(true);
+            expect(error.message).toBe("options.reconnectionOptions.retryMethod should be one of 'increment' or 'exponential'");
+        }
+    });
+
     it("should invalidate cache key on del key", async () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;

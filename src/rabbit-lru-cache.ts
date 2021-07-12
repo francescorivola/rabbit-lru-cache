@@ -5,6 +5,7 @@ import { ClosingError } from "./errors/ClosingError";
 import { notEqual } from "assert";
 import { EventEmitter } from "events";
 import once from "./utils/once";
+import assert = require("assert");
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
@@ -58,6 +59,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     notEqual(options.name, "", "options.name is required");
     notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
     notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
+    assert(!options.reconnectionOptions || !options.reconnectionOptions.retryMethod || ["incremental", "exponential"].includes(options.reconnectionOptions.retryMethod), "options.reconnectionOptions.retryMethod should be one of 'increment' or 'exponential'");
 
     const eventEmitter = new EventEmitter();
     const reconnectionOptions = {
@@ -135,13 +137,13 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     function getRetryInterval(attempt: number, accumulated: number): number {
         const { retryIntervalUpTo, retryBase, retryMethod } = reconnectionOptions;
         let retryInterval = 0;
-        if (retryMethod === 'increment') {
-            const { retryIntervalIncrease } = reconnectionOptions;
-            retryInterval = (accumulated + retryIntervalIncrease) * 1000;
-        }
-        else {
+        if (retryMethod === 'exponential') {
             const { retryFactor } = reconnectionOptions;
             retryInterval = Math.pow(retryFactor, attempt) * 1000;
+        }
+        else {
+            const { retryIntervalIncrease } = reconnectionOptions;
+            retryInterval = (accumulated + retryIntervalIncrease) * 1000;
         }
 
         return Math.min(retryBase + retryInterval, retryIntervalUpTo * 1000);
