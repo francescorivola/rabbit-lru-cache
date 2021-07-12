@@ -66,9 +66,9 @@ async function start() {
 
     await fastify.listen(3000, "0.0.0.0");
 
-    async function gracefullShutdown() {
+    async function gracefulShutdown() {
         try {
-            fastify.log.info("Graceful shuttingdown");
+            fastify.log.info("Graceful shutting down");
             await fastify.close();
             await cache.close();
             await client.close();
@@ -77,8 +77,8 @@ async function start() {
             process.exit(1);
         }
     }
-    process.on("SIGTERM", gracefullShutdown);
-    process.on("SIGINIT", gracefullShutdown);
+    process.on("SIGTERM", gracefulShutdown);
+    process.on("SIGINIT", gracefulShutdown);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
