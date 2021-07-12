@@ -902,8 +902,10 @@ describe("rabbit-lru-cache", () => {
             }
             cache.addReconnectedListener(onReconnectedEvent);
 
-            const reconnectionError1 = Error("RabbitMq error reconnecting 1");
-            connectMock.mockRejectedValueOnce(reconnectionError1);
+            const reconnectionError = Error("RabbitMq error reconnecting");
+            connectMock
+                .mockRejectedValueOnce(reconnectionError)
+                .mockRejectedValueOnce(reconnectionError);
 
             // Act
             const connectionError = Error("RabbitMq is gone");
@@ -949,8 +951,10 @@ describe("rabbit-lru-cache", () => {
             }
             cache.addReconnectedListener(onReconnectedEvent);
 
-            const reconnectionError1 = Error("RabbitMq error reconnecting 1");
-            connectMock.mockRejectedValueOnce(reconnectionError1);
+            const reconnectionError = Error("RabbitMq error reconnecting");
+            connectMock
+                .mockRejectedValueOnce(reconnectionError)
+                .mockRejectedValueOnce(reconnectionError);
 
             // Act
             const connectionError = Error("RabbitMq is gone");
