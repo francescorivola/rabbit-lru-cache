@@ -2,7 +2,7 @@ import * as LRUCache from "lru-cache";
 import { connect, Options, ConsumeMessage, Channel, Connection } from "amqplib";
 import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
-import { notEqual } from "assert";
+import * as assert from "assert";
 import { EventEmitter } from "events";
 import once from "./utils/once";
 
@@ -31,21 +31,35 @@ export type RabbitLRUCacheOptions<T> = {
     name: string;
     LRUCacheOptions: LRUCache.Options<string, T>;
     amqpConnectOptions: Options.Connect;
-    reconnectionOptions?: {
-        allowStaleData?: boolean;
-        retryIntervalUpTo?: number;
-        retryIntervalIncrease?: number;
-    };
+    reconnectionOptions?: ReconnectionOptions;
 };
 
+type ReconnectionOptions = {
+    allowStaleData?: boolean;
+    retryMaxInterval?: number;
+    retryMinInterval?: number;
+    retryFactor?: number;
+};
+
+const reconnectionOptionsDefault: Required<ReconnectionOptions> = {
+    allowStaleData: false,
+    retryMaxInterval: 60000,
+    retryMinInterval: 1000,
+    retryFactor: 2
+}
+
 export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
-    notEqual(options, null, "options is required");
-    notEqual(options.name, null, "options.name is required");
-    notEqual(options.name, "", "options.name is required");
-    notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
-    notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
+    assert.notEqual(options, null, "options is required");
+    assert.notEqual(options.name, null, "options.name is required");
+    assert.notEqual(options.name, "", "options.name is required");
+    assert.notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
+    assert.notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
 
     const eventEmitter = new EventEmitter();
+    const reconnectionOptions = {
+        ...reconnectionOptionsDefault,
+        ...options.reconnectionOptions
+    };
     let closing = false;
     let reconnecting = false;
 
@@ -114,12 +128,16 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         return channel;
     }
 
-    async function handleConnectionError(error: Error, attempt = 0, retryInterval = 0): Promise<void> {
+    function getRetryInterval(attempt: number): number {
+        const { retryMinInterval, retryMaxInterval, retryFactor } = reconnectionOptions;
+        return Math.min(retryMinInterval * Math.pow(retryFactor, attempt), retryMaxInterval);
+    }
+
+    async function handleConnectionError(error: Error, attempt = 0): Promise<void> {
         if (closing) {
             return;
         }
-        const retryIntervalIncrease = options.reconnectionOptions?.retryIntervalIncrease ?? 1000;
-        const retryIntervalUpTo = options.reconnectionOptions?.retryIntervalUpTo ?? 60000;
+        const retryInterval = getRetryInterval(attempt);
         try {
             attempt++;
             reconnecting = true;
@@ -132,10 +150,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             internalReset();
             eventEmitter.emit("reconnected", error, attempt, retryInterval);
         } catch(error) {
-            if (retryInterval < retryIntervalUpTo) {
-                retryInterval = retryInterval + retryIntervalIncrease;
-            }
-            setTimeout(handleConnectionError.bind(null, error, attempt, retryInterval), retryInterval);
+            setTimeout(handleConnectionError.bind(null, error, attempt), retryInterval);
         }
     }
 
@@ -248,7 +263,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             await connection.close();
             cache.reset();
         },
-        prune() {
+        prune(): void {
             assertIsClosingOrClosed();
             cache.prune();
         },
