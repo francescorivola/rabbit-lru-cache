@@ -55,6 +55,16 @@ The lib handles RabbitMq connection errors and it reconnects automatically if th
 
 Examples of the usage of this lib can be found in test folder or [examples](./examples) folder.
 
+## Test
+
+Run test suite with the following command:
+
+```sh
+npm test
+```
+
+Test suite requires a RabbitMq server listening at port 5672.
+
 ## License
 
 MIT
