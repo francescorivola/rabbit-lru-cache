@@ -36,15 +36,15 @@ export type RabbitLRUCacheOptions<T> = {
 
 type ReconnectionOptions = {
     allowStaleData?: boolean;
-    retryIntervalUpTo?: number;
-    retryBase?: number;
+    retryMaxInterval?: number;
+    retryMinInterval?: number;
     retryFactor?: number;
 };
 
 const reconnectionOptionsDefault: Required<ReconnectionOptions> = {
     allowStaleData: false,
-    retryIntervalUpTo: 60,
-    retryBase: 0,
+    retryMaxInterval: 60000,
+    retryMinInterval: 1000,
     retryFactor: 2
 }
 
@@ -129,10 +129,8 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     }
 
     function getRetryInterval(attempt: number): number {
-        const { retryIntervalUpTo, retryBase, retryFactor } = reconnectionOptions;
-        const retryInterval = Math.pow(retryFactor, attempt) * 1000;
-        
-        return Math.min(retryBase + retryInterval, retryIntervalUpTo * 1000);
+        const { retryMinInterval, retryMaxInterval, retryFactor } = reconnectionOptions;
+        return Math.min(retryMinInterval * Math.pow(retryFactor, attempt), retryMaxInterval);
     }
 
     async function handleConnectionError(error: Error, attempt = 0): Promise<void> {
