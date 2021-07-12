@@ -2,10 +2,9 @@ import * as LRUCache from "lru-cache";
 import { connect, Options, ConsumeMessage, Channel, Connection } from "amqplib";
 import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
-import { notEqual } from "assert";
+import * as assert from "assert";
 import { EventEmitter } from "events";
 import once from "./utils/once";
-import assert = require("assert");
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
@@ -54,11 +53,11 @@ const reconnectionOptionsDefault: Required<ReconnectionOptions> = {
 }
 
 export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
-    notEqual(options, null, "options is required");
-    notEqual(options.name, null, "options.name is required");
-    notEqual(options.name, "", "options.name is required");
-    notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
-    notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
+    assert.notEqual(options, null, "options is required");
+    assert.notEqual(options.name, null, "options.name is required");
+    assert.notEqual(options.name, "", "options.name is required");
+    assert.notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
+    assert.notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
     assert(!options.reconnectionOptions || !options.reconnectionOptions.retryMethod || ["incremental", "exponential"].includes(options.reconnectionOptions.retryMethod), "options.reconnectionOptions.retryMethod should be one of 'increment' or 'exponential'");
 
     const eventEmitter = new EventEmitter();
@@ -279,7 +278,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             await connection.close();
             cache.reset();
         },
-        prune() {
+        prune(): void {
             assertIsClosingOrClosed();
             cache.prune();
         },
