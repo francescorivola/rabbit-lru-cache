@@ -119,27 +119,6 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
-    it("should throw an assert error if options.reconnectionOptions.retryMethod is not 'exponential' neither 'increment'", async () => {
-        // Arrange
-        expect.assertions(2);
-
-        // Act
-        try {
-            const createRabbitLRUCache = requireRabbitLRUCache<string>();
-            await createRabbitLRUCache({
-                name: "test",
-                LRUCacheOptions: { },
-                amqpConnectOptions,
-                reconnectionOptions: {
-                    retryMethod: "non-existing-retry-method" as any
-                }
-            });
-        } catch(error) {
-            expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options.reconnectionOptions.retryMethod should be one of 'increment' or 'exponential'");
-        }
-    });
-
     it("should invalidate cache key on del key", async () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;
@@ -855,7 +834,6 @@ describe("rabbit-lru-cache", () => {
                 LRUCacheOptions: {},
                 amqpConnectOptions,
                 reconnectionOptions: {
-                    retryIntervalIncrease: 1,
                     retryIntervalUpTo: 1
                 }
             });
@@ -908,7 +886,7 @@ describe("rabbit-lru-cache", () => {
                 LRUCacheOptions: {},
                 amqpConnectOptions,
                 reconnectionOptions: {
-                    retryMethod: 'exponential'
+                    retryFactor: 3
                 }
             });
 
@@ -940,7 +918,7 @@ describe("rabbit-lru-cache", () => {
 
             expect(reconnectedError).toBe(reconnectionError2);
             expect(reconnectedAttempt).toBe(3);
-            expect(reconnectedRetryInterval).toBe(4000);
+            expect(reconnectedRetryInterval).toBe(9000);
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
