@@ -669,11 +669,11 @@ describe("rabbit-lru-cache", () => {
 
             expect(reconnectingError).toBe(connectionError);
             expect(reconnectingAttempt).toBe(1);
-            expect(reconnectingRetryInterval).toBe(0);
+            expect(reconnectingRetryInterval).toBe(1000);
 
             expect(reconnectedError).toBe(connectionError);
             expect(reconnectedAttempt).toBe(1);
-            expect(reconnectedRetryInterval).toBe(0);
+            expect(reconnectedRetryInterval).toBe(1000);
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -867,7 +867,59 @@ describe("rabbit-lru-cache", () => {
 
             expect(reconnectedError).toBe(reconnectionError2);
             expect(reconnectedAttempt).toBe(3);
-            expect(reconnectedRetryInterval).toBe(1);
+            expect(reconnectedRetryInterval).toBe(1000);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
+    it("should retry exponentially on reconnection error", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions,
+                reconnectionOptions: {
+                    retryMethod: 'exponential'
+                }
+            });
+
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            let reconnectedError, reconnectedAttempt, reconnectedRetryInterval;
+            const onReconnectedEvent = function(error, attempt, retryInterval): void {
+                reconnectedError = error;
+                reconnectedAttempt = attempt;
+                reconnectedRetryInterval = retryInterval;
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            const reconnectionError1 = Error("RabbitMq error reconnecting 1");
+            const reconnectionError2 = Error("RabbitMq error reconnecting 2");
+            connectMock
+                .mockRejectedValueOnce(reconnectionError1)
+                .mockRejectedValueOnce(reconnectionError2);
+
+            // Act
+            const connectionError = Error("RabbitMq is gone");
+            emitter.emitError(connectionError);
+
+            await promiseReconnectedEventTriggered;
+            cache.removeReconnectedListener(onReconnectedEvent);
+
+            expect(reconnectedError).toBe(reconnectionError2);
+            expect(reconnectedAttempt).toBe(3);
+            expect(reconnectedRetryInterval).toBe(4000);
         } finally {
             await cache?.close();
             jest.unmock("amqplib");

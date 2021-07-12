@@ -31,12 +31,26 @@ export type RabbitLRUCacheOptions<T> = {
     name: string;
     LRUCacheOptions: LRUCache.Options<string, T>;
     amqpConnectOptions: Options.Connect;
-    reconnectionOptions?: {
-        allowStaleData?: boolean;
-        retryIntervalUpTo?: number;
-        retryIntervalIncrease?: number;
-    };
+    reconnectionOptions?: ReconnectionOptions;
 };
+
+type ReconnectionOptions = {
+    allowStaleData?: boolean;
+    retryIntervalUpTo?: number;
+    retryIntervalIncrease?: number;
+    retryBase?: number;
+    retryMethod?: 'increment' | 'exponential';
+    retryFactor?: number;
+};
+
+const reconnectionOptionsDefault: Required<ReconnectionOptions> = {
+    allowStaleData: false,
+    retryIntervalUpTo: 60,
+    retryIntervalIncrease: 1,
+    retryBase: 0,
+    retryMethod: 'increment',
+    retryFactor: 2
+}
 
 export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
     notEqual(options, null, "options is required");
@@ -46,6 +60,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
 
     const eventEmitter = new EventEmitter();
+    const reconnectionOptions = {
+        ...reconnectionOptionsDefault,
+        ...options.reconnectionOptions
+    };
     let closing = false;
     let reconnecting = false;
 
@@ -114,12 +132,26 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         return channel;
     }
 
-    async function handleConnectionError(error: Error, attempt = 0, retryInterval = 0): Promise<void> {
+    function getRetryInterval(attempt: number, accumulated: number): number {
+        const { retryIntervalUpTo, retryBase, retryMethod } = reconnectionOptions;
+        let retryInterval = 0;
+        if (retryMethod === 'increment') {
+            const { retryIntervalIncrease } = reconnectionOptions;
+            retryInterval = (accumulated + retryIntervalIncrease) * 1000;
+        }
+        else {
+            const { retryFactor } = reconnectionOptions;
+            retryInterval = Math.pow(retryFactor, attempt) * 1000;
+        }
+
+        return Math.min(retryBase + retryInterval, retryIntervalUpTo * 1000);
+    }
+
+    async function handleConnectionError(error: Error, attempt = 0, accumulatedInterval = 0): Promise<void> {
         if (closing) {
             return;
         }
-        const retryIntervalIncrease = options.reconnectionOptions?.retryIntervalIncrease ?? 1000;
-        const retryIntervalUpTo = options.reconnectionOptions?.retryIntervalUpTo ?? 60000;
+        const retryInterval = getRetryInterval(attempt, accumulatedInterval);
         try {
             attempt++;
             reconnecting = true;
@@ -132,10 +164,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             internalReset();
             eventEmitter.emit("reconnected", error, attempt, retryInterval);
         } catch(error) {
-            if (retryInterval < retryIntervalUpTo) {
-                retryInterval = retryInterval + retryIntervalIncrease;
-            }
-            setTimeout(handleConnectionError.bind(null, error, attempt, retryInterval), retryInterval);
+            setTimeout(handleConnectionError.bind(null, error, attempt, accumulatedInterval + retryInterval), retryInterval);
         }
     }
 
