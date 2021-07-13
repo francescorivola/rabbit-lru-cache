@@ -1,14 +1,15 @@
 const createRabbitLRUCache = require("rabbit-lru-cache").default;
-const { connect, ObjectId } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const fastify = require("fastify")({ logger: true });
 const serverId = process.env.SERVER_ID || new ObjectId().toHexString();
 
 async function start() {
   try {
-    const client = await connect(process.env.MONGODB_URI || "mongodb://localhost:27017", {
+    const client = new MongoClient(process.env.MONGODB_URI || "mongodb://localhost:27017", {
         useNewUrlParser: true,
         useUnifiedTopology: true
     });
+    await client.connect();
     const db = client.db("example");
     const items = db.collection("items");
     const cache = await createRabbitLRUCache({
@@ -42,7 +43,7 @@ async function start() {
             reply.header("X-Cache", "MISS");
             reply.status(404).send();
             return;
-        }            
+        }
         reply.header("X-Cache", cacheStatus);
         return item;
     });

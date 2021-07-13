@@ -10,7 +10,7 @@
     "amqplib": "^0.8.0",
     "fastify": "^3.2.1",
     "lru-cache": "^5.1.1",
-    "mongodb": "^3.5.5",
+    "mongodb": "^4.0.0",
     "node-fetch": "^2.6.0",
     "rabbit-lru-cache": "^1.0.0"
   },

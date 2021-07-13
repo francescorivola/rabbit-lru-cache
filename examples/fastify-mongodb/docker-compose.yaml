@@ -5,7 +5,7 @@ services:
     networks:
       - rabbit-lru-cache-example
   mongodb:
-    image: mongo:4.2.0
+    image: mongo:4.4.6
     networks:
       - rabbit-lru-cache-example
   nginx:
@@ -25,7 +25,7 @@ services:
       - server2
       - server3
   server1:
-    image: node:14.8.0
+    image: node:14.17.3
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
@@ -42,7 +42,7 @@ services:
       - rabbitmq
       - mongodb
   server2:
-    image: node:14.8.0
+    image: node:14.17.3
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
@@ -59,7 +59,7 @@ services:
       - rabbitmq
       - mongodb
   server3:
-    image: node:14.8.0
+    image: node:14.17.3
     networks:
       - rabbit-lru-cache-example
     working_dir: /var/www
