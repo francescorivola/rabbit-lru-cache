@@ -31,7 +31,7 @@
   "homepage": "https://github.com/francescorivola/rabbit-lru-cache#readme",
   "devDependencies": {
     "@types/amqplib": "^0.8.0",
-    "@types/jest": "^26.0.0",
+    "@types/jest": "^27.0.1",
     "@types/lru-cache": "^5.1.0",
     "@types/node": "^16.0.0",
     "@types/uuid": "^8.0.0",
