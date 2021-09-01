@@ -11,7 +11,7 @@
     "fastify": "^3.2.1",
     "lru-cache": "^6.0.0",
     "mongodb": "^4.0.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.0.0",
     "rabbit-lru-cache": "^1.0.0"
   },
   "devDependencies": {
