@@ -1,7 +1,10 @@
-const createRabbitLRUCache = require("rabbit-lru-cache").default;
-const { MongoClient, ObjectId } = require("mongodb");
-const fastify = require("fastify")({ logger: true });
+import rabbitLruCache from "rabbit-lru-cache";
+import { MongoClient, ObjectId } from "mongodb";
+import fastify from 'fastify';
+
+const createRabbitLRUCache = rabbitLruCache.default;
 const serverId = process.env.SERVER_ID || new ObjectId().toHexString();
+const app = fastify({ logger: true });
 
 async function start() {
   try {
@@ -22,16 +25,16 @@ async function start() {
         }
     });
     cache.addInvalidationMessageReceivedListener((content, publisherCacheId) => {
-        fastify.log.info("Cache Message", "serverId", serverId, "publisherCacheId", publisherCacheId, "content", content);
+        app.log.info("Cache Message", "serverId", serverId, "publisherCacheId", publisherCacheId, "content", content);
     });
     cache.addReconnectingListener((error, attempt, retryInterval) => {
-        fastify.log.info("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
+        app.log.info("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
     });
     cache.addReconnectedListener((error, attempt, retryInterval) => {
-        fastify.log.info("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
+        app.log.info("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
     });
 
-    fastify.get("/items/:id", async (request, reply) => {
+    app.get("/items/:id", async (request, reply) => {
         const { id } = request.params;
         reply.header("X-Server-Id", serverId);
         let cacheStatus = "HIT";
@@ -48,7 +51,7 @@ async function start() {
         return item;
     });
 
-    fastify.put("/items/:id", async (request, reply) => {
+    app.put("/items/:id", async (request, reply) => {
         const { id } = request.params;
         const item = { ...request.body, _id: id };
         await items.replaceOne({ _id: id }, item, { upsert: true });
@@ -57,7 +60,7 @@ async function start() {
         return item;
     });
 
-    fastify.delete("/items/:id", async (request, reply) => {
+    app.delete("/items/:id", async (request, reply) => {
         const { id } = request.params;
         await items.deleteOne({ _id: id });
         cache.del(id);
@@ -65,23 +68,23 @@ async function start() {
         reply.status(204).send();
     });
 
-    await fastify.listen(3000, "0.0.0.0");
+    await app.listen(3000, "0.0.0.0");
 
     async function gracefulShutdown() {
         try {
-            fastify.log.info("Graceful shutting down");
-            await fastify.close();
+            app.log.info("Graceful shutting down");
+            await app.close();
             await cache.close();
             await client.close();
         } catch(error) {
-            fastify.log.error(err);
+            app.log.error(err);
             process.exit(1);
         }
     }
     process.on("SIGTERM", gracefulShutdown);
     process.on("SIGINIT", gracefulShutdown);
   } catch (err) {
-    fastify.log.error(err);
+    app.log.error(err);
     process.exit(1);
   }
 }
