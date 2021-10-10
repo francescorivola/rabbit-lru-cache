@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+import fetch from "node-fetch";
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));

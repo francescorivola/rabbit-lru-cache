@@ -5,7 +5,7 @@ services:
     networks:
       - rabbit-lru-cache-example
   mongodb:
-    image: mongo:4.4.6
+    image: mongo:4.4.8
     networks:
       - rabbit-lru-cache-example
   nginx:
