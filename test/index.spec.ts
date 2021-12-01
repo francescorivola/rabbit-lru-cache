@@ -4,7 +4,7 @@ import { Options, Message, MessageFields } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
-import { amqplibMock, consumer, emitter, publish, connectMock } from "./amqplib-mock";
+import { amqplibMock, consumer, emitter, publish, connectMock, assertQueueMock } from "./amqplib-mock";
 import { LRUCacheMock, delMock, resetMock } from "./lru-cache-mock";
 
 const amqpConnectOptions: Options.Connect = {
@@ -965,6 +965,52 @@ describe("rabbit-lru-cache", () => {
 
             expect(reconnectedAttempt).toBe(3);
             expect(reconnectedRetryInterval).toBe(500);
+        } finally {
+            await cache?.close();
+            jest.unmock("amqplib");
+        }
+    });
+
+    it.skip("should throw error and do not reconnect if assert consumer queue fails on cache creation", () => {
+
+    });
+
+    it("should use a new queue on reconnection", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        let cache;
+
+        try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions
+            });
+
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            // Act
+            const connectionError = Error("RabbitMq is gone")
+            emitter.emitError(connectionError);
+
+            await promiseReconnectedEventTriggered;
+
+            cache.removeReconnectedListener(onReconnectedEvent);
+
+            expect(assertQueueMock).toBeCalledTimes(2);
+            const queueNameOnCacheCreation = (assertQueueMock.mock.calls[0] as string[])[0];
+            const queueNameOnReconnect = (assertQueueMock.mock.calls[1] as string[])[0];
+            expect(queueNameOnReconnect).not.toBe(queueNameOnCacheCreation);
+
         } finally {
             await cache?.close();
             jest.unmock("amqplib");

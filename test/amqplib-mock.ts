@@ -4,10 +4,11 @@ export const consumer = {
     onMessage: (message: Message | null): void => { console.log(message) }
 };
 export const publish = jest.fn();
+export const assertQueueMock = jest.fn(() => new Promise(resolve => setTimeout(resolve, 0)));
 export const createChannelMock = jest.fn(() => new Promise(resolve => setTimeout(() => {
     resolve({
         assertExchange: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
-        assertQueue: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
+        assertQueue: assertQueueMock,
         bindQueue: jest.fn(() => new Promise(resolve => setTimeout(resolve, 0))),
         consume: jest.fn((queueName, onMessage) => {
             consumer.onMessage = onMessage;

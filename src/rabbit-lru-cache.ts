@@ -63,7 +63,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let closing = false;
     let reconnecting = false;
 
-    const cacheId = uuid.v1();
+    let cacheId = uuid.v1();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
 
     let connection: Connection;
@@ -143,6 +143,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             reconnecting = true;
             internalReset();
             eventEmitter.emit("reconnecting", error, attempt, retryInterval);
+            cacheId = uuid.v1();
             connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
