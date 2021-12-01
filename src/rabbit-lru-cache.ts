@@ -88,7 +88,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         return connect(options);
     }
 
-    function attachConnectionErrorHandler(connection: Connection, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): void {
+    function addConnectionErrorHandlerListener(connection: Connection, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): void {
         connection.removeAllListeners("error");
         const errorHandler = once(handleConnectionError);
         connection.on("error", errorHandler);
@@ -147,7 +147,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             eventEmitter.emit("reconnecting", error, attempt, retryInterval);
             cacheId = uuid.v1();
             connection = await createConnection(options.amqpConnectOptions);
-            attachConnectionErrorHandler(connection, handleConnectionError);
+            addConnectionErrorHandlerListener(connection, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
             reconnecting = false;
@@ -161,7 +161,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     connection = await createConnection(options.amqpConnectOptions);
     publisherChannel = await createPublisher(connection, exchangeName);
     subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
-    attachConnectionErrorHandler(connection, handleConnectionError);
+    addConnectionErrorHandlerListener(connection, handleConnectionError);
 
     function assertIsClosingOrClosed(): void {
         if (closing) {
