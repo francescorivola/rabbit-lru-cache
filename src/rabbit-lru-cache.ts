@@ -84,13 +84,15 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         cache.del(key);
     }
 
-    async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): Promise<Connection> {
-        const connection = await connect(options);
+    function createConnection(options: Options.Connect): Promise<Connection> {
+        return connect(options);
+    }
+
+    function attachConnectionErrorHandler(connection: Connection, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): void {
         connection.removeAllListeners("error");
         const errorHandler = once(handleConnectionError);
         connection.on("error", errorHandler);
         connection.on("close", errorHandler);
-        return connection;
     }
 
     async function createPublisher(connection: Connection, exchangeName: string): Promise<Channel> {
@@ -144,7 +146,8 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             internalReset();
             eventEmitter.emit("reconnecting", error, attempt, retryInterval);
             cacheId = uuid.v1();
-            connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+            connection = await createConnection(options.amqpConnectOptions);
+            attachConnectionErrorHandler(connection, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
             reconnecting = false;
@@ -155,9 +158,10 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         }
     }
 
-    connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+    connection = await createConnection(options.amqpConnectOptions);
     publisherChannel = await createPublisher(connection, exchangeName);
     subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
+    attachConnectionErrorHandler(connection, handleConnectionError);
 
     function assertIsClosingOrClosed(): void {
         if (closing) {

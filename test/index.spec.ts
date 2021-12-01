@@ -4,7 +4,7 @@ import { Options, Message, MessageFields } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
-import { amqplibMock, consumer, emitter, publish, connectMock, assertQueueMock } from "./amqplib-mock";
+import { amqplibMock, consumer, emitter, publish, connectMock, assertQueueMock, onMock } from "./amqplib-mock";
 import { LRUCacheMock, delMock, resetMock } from "./lru-cache-mock";
 
 const amqpConnectOptions: Options.Connect = {
@@ -971,8 +971,31 @@ describe("rabbit-lru-cache", () => {
         }
     });
 
-    it.skip("should throw error and do not reconnect if assert consumer queue fails on cache creation", () => {
+    it("should throw error and do not reconnect if assert consumer queue fails on cache creation", async () => {
+        // Arrange
+        expect.assertions(3);
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        try {
+            assertQueueMock.mockImplementationOnce(() => Promise.reject(Error('An error here trying to assert queue')));
 
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+
+            // Act
+            await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions
+            });
+
+        } catch(error) {
+            expect(assertQueueMock).toBeCalledTimes(1);
+            expect(onMock).not.toBeCalled();
+            expect(error.message).toBe('An error here trying to assert queue');
+        } finally {
+            jest.unmock("amqplib");
+            assertQueueMock.mockRestore();
+        }
     });
 
     it("should use a new queue on reconnection", async () => {
