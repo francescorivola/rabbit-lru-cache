@@ -147,9 +147,9 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             eventEmitter.emit("reconnecting", error, attempt, retryInterval);
             cacheId = uuid.v1();
             connection = await createConnection(options.amqpConnectOptions);
-            addConnectionErrorHandlerListener(connection, handleConnectionError);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
+            addConnectionErrorHandlerListener(connection, handleConnectionError);
             reconnecting = false;
             internalReset();
             eventEmitter.emit("reconnected", error, attempt, retryInterval);

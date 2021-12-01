@@ -977,7 +977,13 @@ describe("rabbit-lru-cache", () => {
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
         try {
-            assertQueueMock.mockImplementationOnce(() => Promise.reject(Error('An error here trying to assert queue')));
+            assertQueueMock
+            .mockImplementationOnce(() => new Promise((resolve, reject) =>
+                setTimeout(() => {
+                    const error = Error('An error here trying to assert queue')
+                    emitter.emitError(error);
+                    reject(error);
+                }, 0)));
 
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
 
@@ -993,6 +999,58 @@ describe("rabbit-lru-cache", () => {
             expect(onMock).not.toBeCalled();
             expect(error.message).toBe('An error here trying to assert queue');
         } finally {
+            jest.unmock("amqplib");
+            assertQueueMock.mockRestore();
+        }
+    });
+
+    it("should retry reconnect only once if assert consumer queue fails on reconnection", async () => {
+        // Arrange
+        jest.clearAllMocks().resetModules();
+        jest.mock("amqplib", () => amqplibMock);
+        let cache;
+
+        try {
+            assertQueueMock
+                .mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 0)))
+                .mockImplementationOnce(() => new Promise((resolve, reject) =>
+                    setTimeout(() => {
+                        const error = Error('Channel closed by server: 405 (RESOURCE-LOCKED) with message "RESOURCE_LOCKED - cannot obtain exclusive access to locked queue')
+                        emitter.emitError(error);
+                        reject(error);
+                    }, 0)));
+
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+            cache = await createRabbitLRUCache({
+                name: "test",
+                LRUCacheOptions: {},
+                amqpConnectOptions,
+                reconnectionOptions: {
+                    retryFactor: 1
+                }
+            });
+            const onReconnectingEvent = jest.fn()
+            cache.addReconnectingListener(onReconnectingEvent);
+            let resolvePromiseReconnectedEventTriggered;
+            const promiseReconnectedEventTriggered = new Promise(resolve => {
+                resolvePromiseReconnectedEventTriggered = resolve;
+            });
+            const onReconnectedEvent = function(): void {
+                resolvePromiseReconnectedEventTriggered();
+            }
+            cache.addReconnectedListener(onReconnectedEvent);
+
+            // Act
+            const connectionError = Error("RabbitMq is gone");
+            emitter.emitError(connectionError);
+
+            // Assert
+            await promiseReconnectedEventTriggered;
+            expect(onReconnectingEvent).toBeCalledTimes(2);
+            expect(assertQueueMock).toBeCalledTimes(3);
+
+        } finally {
+            cache?.close();
             jest.unmock("amqplib");
             assertQueueMock.mockRestore();
         }
