@@ -63,14 +63,23 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let closing = false;
     let reconnecting = false;
 
-    let cacheId = uuid.v1();
+    let cacheId = uuid.v4();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
 
     let connection: Connection;
-    let publisherChannel: Channel, subscriberChannel: Channel;
+    let publisherChannel: Channel;
+    let subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
 
     let loadItemPromises: { [key: string]: Promise<T> } = {};
+
+    function safeEmit(eventName: string, ...args): void {
+        try {
+            eventEmitter.emit(eventName, ...args);
+        } catch {
+            // do nothing here, lib ignores errors thrown by event listeners
+        }
+    }
 
     function internalReset(): void {
         loadItemPromises = {};
@@ -125,7 +134,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 const key = content.substring(4);
                 internalDel(key);
             }
-            eventEmitter.emit("invalidation-message-received", content, publisherCacheId);
+            safeEmit("invalidation-message-received", content, publisherCacheId);
         }, { exclusive: true, noAck: true, consumerTag: cacheId });
         return channel;
     }
@@ -144,15 +153,15 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             attempt++;
             reconnecting = true;
             internalReset();
-            eventEmitter.emit("reconnecting", error, attempt, retryInterval);
-            cacheId = uuid.v1();
+            safeEmit("reconnecting", error, attempt, retryInterval);
+            cacheId = uuid.v4();
             connection = await createConnection(options.amqpConnectOptions);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
             addConnectionErrorHandlerListener(connection, handleConnectionError);
             reconnecting = false;
             internalReset();
-            eventEmitter.emit("reconnected", error, attempt, retryInterval);
+            safeEmit("reconnected", error, attempt, retryInterval);
         } catch(error) {
             setTimeout(handleConnectionError.bind(null, error, attempt), retryInterval);
         }
