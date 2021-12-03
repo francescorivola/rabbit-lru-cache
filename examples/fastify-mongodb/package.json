@@ -13,7 +13,7 @@
     "lru-cache": "^6.0.0",
     "mongodb": "^4.0.0",
     "node-fetch": "^3.0.0",
-    "rabbit-lru-cache": "^1.0.0"
+    "rabbit-lru-cache": "^1.0.1"
   },
   "devDependencies": {
     "@types/amqplib": "^0.8.0",
