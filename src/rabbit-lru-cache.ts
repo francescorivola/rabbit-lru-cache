@@ -63,14 +63,23 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let closing = false;
     let reconnecting = false;
 
-    const cacheId = uuid.v1();
+    let cacheId = uuid.v4();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
 
     let connection: Connection;
-    let publisherChannel: Channel, subscriberChannel: Channel;
+    let publisherChannel: Channel;
+    let subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
 
     let loadItemPromises: { [key: string]: Promise<T> } = {};
+
+    function safeEmit(eventName: string, ...args): void {
+        try {
+            eventEmitter.emit(eventName, ...args);
+        } catch {
+            // do nothing here, lib ignores errors thrown by event listeners
+        }
+    }
 
     function internalReset(): void {
         loadItemPromises = {};
@@ -84,13 +93,15 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         cache.del(key);
     }
 
-    async function createConnection(options: Options.Connect, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): Promise<Connection> {
-        const connection = await connect(options);
+    function createConnection(options: Options.Connect): Promise<Connection> {
+        return connect(options);
+    }
+
+    function addConnectionErrorHandlerListener(connection: Connection, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): void {
         connection.removeAllListeners("error");
         const errorHandler = once(handleConnectionError);
         connection.on("error", errorHandler);
         connection.on("close", errorHandler);
-        return connection;
     }
 
     async function createPublisher(connection: Connection, exchangeName: string): Promise<Channel> {
@@ -123,7 +134,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 const key = content.substring(4);
                 internalDel(key);
             }
-            eventEmitter.emit("invalidation-message-received", content, publisherCacheId);
+            safeEmit("invalidation-message-received", content, publisherCacheId);
         }, { exclusive: true, noAck: true, consumerTag: cacheId });
         return channel;
     }
@@ -142,21 +153,24 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             attempt++;
             reconnecting = true;
             internalReset();
-            eventEmitter.emit("reconnecting", error, attempt, retryInterval);
-            connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+            safeEmit("reconnecting", error, attempt, retryInterval);
+            cacheId = uuid.v4();
+            connection = await createConnection(options.amqpConnectOptions);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
+            addConnectionErrorHandlerListener(connection, handleConnectionError);
             reconnecting = false;
             internalReset();
-            eventEmitter.emit("reconnected", error, attempt, retryInterval);
+            safeEmit("reconnected", error, attempt, retryInterval);
         } catch(error) {
             setTimeout(handleConnectionError.bind(null, error, attempt), retryInterval);
         }
     }
 
-    connection = await createConnection(options.amqpConnectOptions, handleConnectionError);
+    connection = await createConnection(options.amqpConnectOptions);
     publisherChannel = await createPublisher(connection, exchangeName);
     subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
+    addConnectionErrorHandlerListener(connection, handleConnectionError);
 
     function assertIsClosingOrClosed(): void {
         if (closing) {
