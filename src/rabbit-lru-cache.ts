@@ -5,6 +5,7 @@ import { ClosingError } from "./errors/ClosingError";
 import * as assert from "assert";
 import { EventEmitter } from "events";
 import once from "./utils/once";
+import { randomUUID } from "crypto";
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
@@ -63,7 +64,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     let closing = false;
     let reconnecting = false;
 
-    let cacheId = uuid.v4();
+    let cacheId = randomUUID();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
 
     let connection: Connection;
