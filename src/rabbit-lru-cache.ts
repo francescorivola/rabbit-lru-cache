@@ -1,6 +1,5 @@
 import * as LRUCache from "lru-cache";
 import { connect, Options, ConsumeMessage, Channel, Connection } from "amqplib";
-import * as uuid from "uuid";
 import { ClosingError } from "./errors/ClosingError";
 import * as assert from "assert";
 import { EventEmitter } from "events";
@@ -155,7 +154,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             reconnecting = true;
             internalReset();
             safeEmit("reconnecting", error, attempt, retryInterval);
-            cacheId = uuid.v4();
+            cacheId = randomUUID();
             connection = await createConnection(options.amqpConnectOptions);
             publisherChannel = await createPublisher(connection, exchangeName);
             subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
