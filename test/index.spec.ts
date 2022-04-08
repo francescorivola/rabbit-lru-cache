@@ -30,7 +30,7 @@ describe("rabbit-lru-cache", () => {
             await createRabbitLRUCache(null as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options is required");
+            expect((error as Error).message).toBe("options is required");
         }
     });
 
@@ -44,7 +44,7 @@ describe("rabbit-lru-cache", () => {
             await createRabbitLRUCache(undefined as unknown as RabbitLRUCacheOptions<string>);
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options is required");
+            expect((error as Error).message).toBe("options is required");
         }
     });
 
@@ -62,7 +62,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options.name is required");
+            expect((error as Error).message).toBe("options.name is required");
         }
     });
 
@@ -80,7 +80,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options.name is required");
+            expect((error as Error).message).toBe("options.name is required");
         }
     });
 
@@ -98,7 +98,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options.LRUCacheOptions is required");
+            expect((error as Error).message).toBe("options.LRUCacheOptions is required");
         }
     });
 
@@ -116,7 +116,7 @@ describe("rabbit-lru-cache", () => {
             });
         } catch(error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect(error.message).toBe("options.amqpConnectOptions is required");
+            expect((error as Error).message).toBe("options.amqpConnectOptions is required");
         }
     });
 
@@ -486,7 +486,7 @@ describe("rabbit-lru-cache", () => {
                 cache2.getOrLoad("KEY_A", () => new Promise<string>(resolve => {
                     resolvePromiseLoadedItem2 = resolve;
                 })),
-                new Promise(resolve => {
+                new Promise<void>(resolve => {
                     cache1?.reset();
                     resolvePromiseLoadedItem1("VALUE_A");
                     promiseCache2GetTheMessage.then(() => {
@@ -599,7 +599,7 @@ describe("rabbit-lru-cache", () => {
             expect(await cache.getOrLoad("KEY", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
         } catch(error) {
             expect(error instanceof ClosingError).toBe(true);
-            expect(error.message).toBe("Cache is closing or has been closed");
+            expect((error as Error).message).toBe("Cache is closing or has been closed");
         }
     });
 
@@ -621,7 +621,7 @@ describe("rabbit-lru-cache", () => {
             consumer.onMessage(null);
         } catch(error) {
             expect(error instanceof Error).toBe(true);
-            expect(error.message).toBe("consumer has been cancelled by RabbitMq");
+            expect((error as Error).message).toBe("consumer has been cancelled by RabbitMq");
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -1041,7 +1041,7 @@ describe("rabbit-lru-cache", () => {
         } catch(error) {
             expect(assertQueueMock).toBeCalledTimes(1);
             expect(onMock).not.toBeCalled();
-            expect(error.message).toBe('An error here trying to assert queue');
+            expect((error as Error).message).toBe('An error here trying to assert queue');
         } finally {
             jest.unmock("amqplib");
             assertQueueMock.mockRestore();

@@ -88,7 +88,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
     }
 
     function internalDel(key: string): void {
-        if (loadItemPromises[key]) {
+        if (loadItemPromises[key] !== undefined) {
             delete loadItemPromises[key];
         }
         cache.del(key);
@@ -164,7 +164,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             internalReset();
             safeEmit("reconnected", error, attempt, retryInterval);
         } catch(error) {
-            setTimeout(handleConnectionError.bind(null, error, attempt), retryInterval);
+            setTimeout(handleConnectionError.bind(null, error as Error, attempt), retryInterval);
         }
     }
 
@@ -228,7 +228,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             if (item !== undefined && item !== null) {
                 return item;
             }
-            if (loadItemPromises[key]) {
+            if (loadItemPromises[key] !== undefined) {
                 return loadItemPromises[key];
             }
             loadItemPromises[key] = loadItem(key);
@@ -241,7 +241,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 }
                 return loadedItem;
             } finally {
-                if (loadItemPromises[key]) {
+                if (loadItemPromises[key] !== undefined) {
                     delete loadItemPromises[key];
                 }
             }

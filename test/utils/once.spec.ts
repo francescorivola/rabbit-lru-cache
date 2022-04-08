@@ -8,7 +8,7 @@ describe("once", () => {
             once<object>({} as unknown as (...args) => object);
         } catch(error) {
             expect(error instanceof TypeError).toBe(true);
-            expect(error.message).toBe("Input parameter must be a function");
+            expect((error as Error).message).toBe("Input parameter must be a function");
         }
     });
 
