@@ -14,6 +14,7 @@ const amqpConnectOptions: Options.Connect = {
 };
 
 function requireRabbitLRUCache<T>(): (options: RabbitLRUCacheOptions<T>) => Promise<RabbitLRUCache<T>> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require("../src/index").default;
 }
 
