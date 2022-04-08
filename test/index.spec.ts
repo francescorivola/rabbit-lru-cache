@@ -1,11 +1,11 @@
 import { RabbitLRUCache, RabbitLRUCacheOptions } from "../src/rabbit-lru-cache";
-import * as uuid from "uuid";
 import { Options, Message, MessageFields } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
 import { amqplibMock, consumer, emitter, publish, connectMock, assertQueueMock, onMock } from "./amqplib-mock";
 import { LRUCacheMock, delMock, resetMock } from "./lru-cache-mock";
+import { randomUUID } from "crypto";
 
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
@@ -125,7 +125,7 @@ describe("rabbit-lru-cache", () => {
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         let cache3: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         let promiseCache2Resolve;
         let promiseCache3Resolve;
@@ -180,7 +180,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         let promiseCache2Resolve;
         try {
@@ -222,7 +222,7 @@ describe("rabbit-lru-cache", () => {
     it("should not cache undefined results from load item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -251,7 +251,7 @@ describe("rabbit-lru-cache", () => {
     it("should not cache null results from load item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -280,7 +280,7 @@ describe("rabbit-lru-cache", () => {
     it("should cache empty string results from load item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -306,7 +306,7 @@ describe("rabbit-lru-cache", () => {
     it("should cache 0 number results from load item", async () => {
         // Arrange
         let cache: RabbitLRUCache<number> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<number>();
@@ -332,7 +332,7 @@ describe("rabbit-lru-cache", () => {
     it("should await on the same promise if multiple calls to the getItem are done while loading the item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -362,7 +362,7 @@ describe("rabbit-lru-cache", () => {
     it("should await and reject on the same promise if multiple calls to the getItem are done while loading the item", async () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -396,7 +396,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         let promiseCache2Resolve;
         try {
@@ -455,7 +455,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         let promiseCache2Resolve;
         try {
@@ -515,7 +515,7 @@ describe("rabbit-lru-cache", () => {
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         let cache3: RabbitLRUCache<string> | null = null;
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         let promiseCache2Resolve;
         let promiseCache3Resolve;
@@ -584,7 +584,7 @@ describe("rabbit-lru-cache", () => {
     it("should throw an error if any method is called after closing or already closed", async () => {
         // Arrange
         expect.assertions(2);
-        const name = `test-${uuid.v4()}`;
+        const name = `test-${randomUUID()}`;
         const LRUCacheOptions = {};
         const createRabbitLRUCache = requireRabbitLRUCache<string>();
         const cache = await createRabbitLRUCache({
@@ -1186,7 +1186,7 @@ describe("rabbit-lru-cache", () => {
         it("should return the LRU cache max value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
-            const name = `test-${uuid.v4()}`;
+            const name = `test-${randomUUID()}`;
             const LRUCacheOptions = {
                 max: 1000
             };
@@ -1214,7 +1214,7 @@ describe("rabbit-lru-cache", () => {
         it("should return the LRU cache max age value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
-            const name = `test-${uuid.v4()}`;
+            const name = `test-${randomUUID()}`;
             const LRUCacheOptions = {
                 maxAge: 100
             };
@@ -1242,7 +1242,7 @@ describe("rabbit-lru-cache", () => {
         it("should prune expired items in the LRU cache", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
-            const name = `test-${uuid.v4()}`;
+            const name = `test-${randomUUID()}`;
             const LRUCacheOptions = {
                 maxAge: 1
             };
@@ -1274,7 +1274,7 @@ describe("rabbit-lru-cache", () => {
         it("should return the LRU cache stale value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
-            const name = `test-${uuid.v4()}`;
+            const name = `test-${randomUUID()}`;
             const LRUCacheOptions: LRUCache.Options<string, string> = {
                 stale: true
             };
