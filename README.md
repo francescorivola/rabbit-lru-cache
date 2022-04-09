@@ -5,7 +5,7 @@ A lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 [![Actions Status](https://github.com/francescorivola/rabbit-lru-cache/workflows/Node%20CI/badge.svg)](https://github.com/francescorivola/rabbit-lru-cache/actions)
 [![CodeFactor](https://www.codefactor.io/repository/github/francescorivola/rabbit-lru-cache/badge)](https://www.codefactor.io/repository/github/francescorivola/rabbit-lru-cache)
 [![codecov](https://codecov.io/gh/francescorivola/rabbit-lru-cache/branch/master/graph/badge.svg)](https://codecov.io/gh/francescorivola/rabbit-lru-cache)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=francescorivola/rabbit-lru-cache)](https://dependabot.com)
+[![Dependabot](https://badgen.net/badge/Dependabot/enabled/green?icon=dependabot)](https://dependabot.com/)
 
 ## Installation
 
