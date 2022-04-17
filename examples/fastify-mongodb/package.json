@@ -10,13 +10,9 @@
   "dependencies": {
     "amqplib": "^0.8.0",
     "fastify": "^3.2.1",
-    "lru-cache": "^7.0.1",
+    "lru-cache": "^5.1.1",
     "mongodb": "^4.0.0",
     "node-fetch": "^3.0.0",
-    "rabbit-lru-cache": "^1.0.1"
-  },
-  "devDependencies": {
-    "@types/amqplib": "^0.8.0",
-    "@types/lru-cache": "^7.4.0"
+    "rabbit-lru-cache": "^2.0.0"
   }
 }
