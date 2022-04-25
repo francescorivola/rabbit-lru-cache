@@ -40,12 +40,12 @@
     "codecov": "^3.8.3",
     "eslint": "^8.12.0",
     "jest": "^27.5.1",
-    "lru-cache": "^5.1.1",
+    "lru-cache": "^6.0.0",
     "ts-jest": "^27.1.4",
     "typescript": "^4.6.3"
   },
   "peerDependencies": {
     "amqplib": "^0.8.0",
-    "lru-cache": "^5.1.1"
+    "lru-cache": "^6.0.0"
   }
 }
