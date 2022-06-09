@@ -9,7 +9,7 @@
   "license": "MIT",
   "dependencies": {
     "amqplib": "^0.8.0",
-    "fastify": "^3.2.1",
+    "fastify": "^4.0.0",
     "lru-cache": "^5.1.1",
     "mongodb": "^4.0.0",
     "node-fetch": "^3.0.0",
