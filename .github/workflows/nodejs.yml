@@ -41,7 +41,10 @@ jobs:
   automerge:
     needs: build
     runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
     steps:
-      - uses: fastify/github-action-merge-dependabot@v2.5.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: fastify/github-action-merge-dependabot@v3.3.0
