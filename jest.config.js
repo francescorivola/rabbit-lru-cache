@@ -4,9 +4,12 @@ module.exports = {
   coverageDirectory: "./coverage/",
   collectCoverage: true,
   collectCoverageFrom: ["src/**/*.ts"],
-  globals: {
-    "ts-jest": {
-      "tsconfig": "./test/tsconfig.json"
-    }
-  }
+  transform: {
+    "<regex_match_files>": [
+      "ts-jest",
+      {
+        tsconfig: "./test/tsconfig.json",
+      },
+    ],
+  },
 };
