@@ -234,7 +234,7 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             try {
                 const loadedItem = await loadItemPromises[key];
                 if ((options.reconnectionOptions?.allowStaleData || !reconnecting) && 
-                    loadItemPromises[key] && 
+                    loadItemPromises[key] !== undefined && 
                     (loadedItem !== undefined && loadedItem !== null)) {
                     cache.set(key, loadedItem);
                 }
