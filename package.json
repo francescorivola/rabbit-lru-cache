@@ -12,8 +12,7 @@
     "test-watch": "jest --watchAll",
     "build": "tsc -p tsconfig.json",
     "build-watch": "tsc -p tsconfig.json --watch",
-    "lint": "eslint . --ext .ts",
-    "publish-code-coverage": "codecov"
+    "lint": "eslint . --ext .ts"
   },
   "repository": {
     "type": "git",
