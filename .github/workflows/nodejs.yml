@@ -18,7 +18,7 @@ jobs:
     - name: Use RabbitMq
       uses: getong/rabbitmq-action@v1.2
       with:
-        rabbitmq version: '3.8-alpine'
+        rabbitmq version: '3.11-alpine'
         host port: 5672
         rabbitmq user: 'guest'
         rabbitmq password: 'guest'
