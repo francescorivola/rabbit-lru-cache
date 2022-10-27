@@ -8,11 +8,8 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "amqplib": "^0.8.0",
-    "fastify": "^4.0.0",
-    "lru-cache": "^5.1.1",
-    "mongodb": "^4.0.0",
-    "node-fetch": "^3.0.0",
-    "rabbit-lru-cache": "^2.0.0"
+    "fastify": "^4.9.2",
+    "mongodb": "^4.11.0",
+    "undici": "^5.12.0"
   }
 }

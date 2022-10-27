@@ -1,8 +1,7 @@
-import fetch from "node-fetch";
+import fetch from "undici";
+import { promisify } from "util";
 
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+const wait = promisify(setTimeout);
 
 async function put(itemId, i) {
     const response = await fetch("http://localhost:8080/items/" + itemId, {
