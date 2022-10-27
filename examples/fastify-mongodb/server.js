@@ -17,7 +17,7 @@ async function start() {
     const items = db.collection("items");
     const cache = await createRabbitLRUCache({
         name: "example",
-        LRUCacheOptions: {},
+        LRUCacheOptions: { max: 10 },
         amqpConnectOptions: {
             hostname: process.env.RABBITMQ_HOSTNAME || "localhost",
             username: process.env.RABBITMQ_USERNAME || "guest",
