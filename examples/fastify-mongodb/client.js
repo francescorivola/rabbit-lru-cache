@@ -1,10 +1,10 @@
-import fetch from "undici";
+import { request } from "undici";
 import { promisify } from "util";
 
 const wait = promisify(setTimeout);
 
 async function put(itemId, i) {
-    const response = await fetch("http://localhost:8080/items/" + itemId, {
+    const response = await request("http://localhost:8080/items/" + itemId, {
         method: "PUT",
         body: JSON.stringify({
             test: "Hi " + i,
@@ -15,19 +15,19 @@ async function put(itemId, i) {
     console.log(
         "put",
         itemId,
-        response.headers.get("x-server-id"),
-        await response.json()
+        response.headers["x-server-id"],
+        await response.body.json()
     );
 }
 
 async function get(itemId) {
-    const response = await fetch("http://localhost:8080/items/" + itemId);
+    const response = await request("http://localhost:8080/items/" + itemId);
     console.log(
         "get",
         itemId,
-        response.headers.get("x-server-id"),
-        response.headers.get("x-cache"),
-        await response.json()
+        response.headers["x-server-id"],
+        response.headers["x-cache"],
+        await response.body.json()
     );
 }
 

@@ -1,4 +1,4 @@
-import rabbitLruCache from "../../src/index";
+import rabbitLruCache from "rabbit-lru-cache";
 import { MongoClient, ObjectId } from "mongodb";
 import fastify from "fastify";
 
@@ -91,7 +91,7 @@ async function start() {
             reply.status(204).send();
         });
 
-        await app.listen(3000, "0.0.0.0");
+        await app.listen({ port: 3000, host: "0.0.0.0" });
 
         async function gracefulShutdown() {
             try {
