@@ -12,3 +12,4 @@ jest.config.js
 .eslintrc
 README.md
 docker-compose.yaml
+package-lock.json

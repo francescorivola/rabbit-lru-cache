@@ -17,20 +17,20 @@ jobs:
       - name: Use RabbitMq
         uses: getong/rabbitmq-action@v1.2
         with:
-          rabbitmq version: '3.8-alpine'
+          rabbitmq version: "3.8-alpine"
           host port: 5672
-          rabbitmq user: 'guest'
-          rabbitmq password: 'guest'
+          rabbitmq user: "guest"
+          rabbitmq password: "guest"
 
       - uses: actions/setup-node@v1
         with:
           node-version: 18
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - run: npm run lint
       - run: npm run test
         env:
-            CI: true
+          CI: true
 
       - name: Publish Code Coverage
         if: github.ref == 'refs/heads/master'
@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - run: npm publish
         env:
