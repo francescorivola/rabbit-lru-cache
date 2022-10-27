@@ -9,11 +9,7 @@ const app = fastify({ logger: true });
 async function start() {
     try {
         const client = new MongoClient(
-            process.env.MONGODB_URI || "mongodb://localhost:27017",
-            {
-                useNewUrlParser: true,
-                useUnifiedTopology: true
-            }
+            process.env.MONGODB_URI || "mongodb://localhost:27017"
         );
         await client.connect();
         const db = client.db("example");
