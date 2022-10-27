@@ -8,23 +8,37 @@ import { randomUUID } from "crypto";
 
 export type RabbitLRUCache<T> = {
     close: () => Promise<void>;
-    getItemCount: () => number;
+    getSize: () => number;
     doesAllowStale: () => boolean;
-    getLength: () => number;
     getMax: () => number;
-    getMaxAge: () => number;
-    getOrLoad: (key: string, loadItem: (key: string) => Promise<T>) => Promise<T>;
+    getTTL: () => number;
+    getOrLoad: (
+        key: string,
+        loadItem: (key: string) => Promise<T>
+    ) => Promise<T>;
     has: (key: string) => boolean;
     keys: () => string[];
-    del: (key: string) => void;
-    reset: () => void;
-    prune: () => void;
-    addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
-    removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void;
-    addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
-    removeReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
-    addReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
-    removeReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void;
+    delete: (key: string) => void;
+    clear: () => void;
+    purgeStale: () => void;
+    addInvalidationMessageReceivedListener(
+        fn: (messageContent: string, publisherCacheId: string) => void
+    ): void;
+    removeInvalidationMessageReceivedListener(
+        fn: (messageContent: string, publisherCacheId: string) => void
+    ): void;
+    addReconnectingListener(
+        fn: (error: Error, attempt: number, retryInterval: number) => void
+    ): void;
+    removeReconnectingListener(
+        fn: (error: Error, attempt: number, retryInterval: number) => void
+    ): void;
+    addReconnectedListener(
+        fn: (error: Error, attempt: number, retryInterval: number) => void
+    ): void;
+    removeReconnectedListener(
+        fn: (error: Error, attempt: number, retryInterval: number) => void
+    ): void;
 };
 
 export type RabbitLRUCacheOptions<T> = {
@@ -46,14 +60,24 @@ const reconnectionOptionsDefault: Required<ReconnectionOptions> = {
     retryMaxInterval: 60000,
     retryMinInterval: 1000,
     retryFactor: 2
-}
+};
 
-export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>): Promise<RabbitLRUCache<T>> {
+export async function createRabbitLRUCache<T>(
+    options: RabbitLRUCacheOptions<T>
+): Promise<RabbitLRUCache<T>> {
     assert.notEqual(options, null, "options is required");
     assert.notEqual(options.name, null, "options.name is required");
     assert.notEqual(options.name, "", "options.name is required");
-    assert.notEqual(options.LRUCacheOptions, null, "options.LRUCacheOptions is required");
-    assert.notEqual(options.amqpConnectOptions, null, "options.amqpConnectOptions is required");
+    assert.notEqual(
+        options.LRUCacheOptions,
+        null,
+        "options.LRUCacheOptions is required"
+    );
+    assert.notEqual(
+        options.amqpConnectOptions,
+        null,
+        "options.amqpConnectOptions is required"
+    );
 
     const eventEmitter = new EventEmitter();
     const reconnectionOptions = {
@@ -81,36 +105,52 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         }
     }
 
-    function internalReset(): void {
+    function internalClear(): void {
         loadItemPromises = {};
-        cache.reset();
+        cache.clear();
     }
 
-    function internalDel(key: string): void {
+    function internalDelete(key: string): void {
         if (loadItemPromises[key] !== undefined) {
             delete loadItemPromises[key];
         }
-        cache.del(key);
+        cache.delete(key);
     }
 
     function createConnection(options: Options.Connect): Promise<Connection> {
         return connect(options);
     }
 
-    function addConnectionErrorHandlerListener(connection: Connection, handleConnectionError: (error: Error, attempt: number, retryInterval: number) => Promise<void>): void {
+    function addConnectionErrorHandlerListener(
+        connection: Connection,
+        handleConnectionError: (
+            error: Error,
+            attempt: number,
+            retryInterval: number
+        ) => Promise<void>
+    ): void {
         connection.removeAllListeners("error");
         const errorHandler = once(handleConnectionError);
         connection.on("error", errorHandler);
         connection.on("close", errorHandler);
     }
 
-    async function createPublisher(connection: Connection, exchangeName: string): Promise<Channel> {
+    async function createPublisher(
+        connection: Connection,
+        exchangeName: string
+    ): Promise<Channel> {
         const channel = await connection.createChannel();
-        await channel.assertExchange(exchangeName, "fanout", { durable: false });
+        await channel.assertExchange(exchangeName, "fanout", {
+            durable: false
+        });
         return channel;
     }
 
-    async function createConsumer(connection: Connection, exchangeName: string, cacheId: string): Promise<Channel> {
+    async function createConsumer(
+        connection: Connection,
+        exchangeName: string,
+        cacheId: string
+    ): Promise<Channel> {
         const channel = await connection.createChannel();
         const queueName = `${exchangeName}-${cacheId}`;
         await channel.assertQueue(queueName, {
@@ -119,32 +159,47 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             autoDelete: true
         });
         await channel.bindQueue(queueName, exchangeName, "");
-        await channel.consume(queueName, function onMessage(msg: ConsumeMessage | null) {
-            if (msg === null) {
-                throw new Error("consumer has been cancelled by RabbitMq");
-            }
-            const publisherCacheId = msg.properties.headers["x-cache-id"];
-            if (publisherCacheId === cacheId) {
-                return;
-            }
-            const content = msg.content.toString();
-            if (content === "reset") {
-                internalReset();
-            } else if (content.startsWith("del:")) {
-                const key = content.substring(4);
-                internalDel(key);
-            }
-            safeEmit("invalidation-message-received", content, publisherCacheId);
-        }, { exclusive: true, noAck: true, consumerTag: cacheId });
+        await channel.consume(
+            queueName,
+            function onMessage(msg: ConsumeMessage | null) {
+                if (msg === null) {
+                    throw new Error("consumer has been cancelled by RabbitMq");
+                }
+                const publisherCacheId = msg.properties.headers["x-cache-id"];
+                if (publisherCacheId === cacheId) {
+                    return;
+                }
+                const content = msg.content.toString();
+                if (content === "reset") {
+                    internalClear();
+                } else if (content.startsWith("del:")) {
+                    const key = content.substring(4);
+                    internalDelete(key);
+                }
+                safeEmit(
+                    "invalidation-message-received",
+                    content,
+                    publisherCacheId
+                );
+            },
+            { exclusive: true, noAck: true, consumerTag: cacheId }
+        );
         return channel;
     }
 
     function getRetryInterval(attempt: number): number {
-        const { retryMinInterval, retryMaxInterval, retryFactor } = reconnectionOptions;
-        return Math.min(retryMinInterval * Math.pow(retryFactor, attempt), retryMaxInterval);
+        const { retryMinInterval, retryMaxInterval, retryFactor } =
+            reconnectionOptions;
+        return Math.min(
+            retryMinInterval * Math.pow(retryFactor, attempt),
+            retryMaxInterval
+        );
     }
 
-    async function handleConnectionError(error: Error, attempt = 0): Promise<void> {
+    async function handleConnectionError(
+        error: Error,
+        attempt = 0
+    ): Promise<void> {
         if (closing) {
             return;
         }
@@ -152,18 +207,28 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         try {
             attempt++;
             reconnecting = true;
-            internalReset();
+            internalClear();
             safeEmit("reconnecting", error, attempt, retryInterval);
             cacheId = randomUUID();
             connection = await createConnection(options.amqpConnectOptions);
             publisherChannel = await createPublisher(connection, exchangeName);
-            subscriberChannel = await createConsumer(connection, exchangeName, cacheId);
-            addConnectionErrorHandlerListener(connection, handleConnectionError);
+            subscriberChannel = await createConsumer(
+                connection,
+                exchangeName,
+                cacheId
+            );
+            addConnectionErrorHandlerListener(
+                connection,
+                handleConnectionError
+            );
             reconnecting = false;
-            internalReset();
+            internalClear();
             safeEmit("reconnected", error, attempt, retryInterval);
-        } catch(error) {
-            setTimeout(handleConnectionError.bind(null, error as Error, attempt), retryInterval);
+        } catch (error) {
+            setTimeout(
+                handleConnectionError.bind(null, error as Error, attempt),
+                retryInterval
+            );
         }
     }
 
@@ -178,20 +243,24 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
         }
     }
 
-    function assertIsClosingOrClosedDecorator<TT>(fn: (...args) => TT): (...args) => TT {
-        return function(...args): TT {
+    function assertIsClosingOrClosedDecorator<TT>(
+        fn: (...args) => TT
+    ): (...args) => TT {
+        return function (...args): TT {
             assertIsClosingOrClosed();
             return fn(...args);
-        }
+        };
     }
 
     function publish(message: string): void {
         if (reconnecting) {
             return;
         }
-        publisherChannel.publish(exchangeName, "", Buffer.from(message), { headers: {
-            "x-cache-id": cacheId
-        }});
+        publisherChannel.publish(exchangeName, "", Buffer.from(message), {
+            headers: {
+                "x-cache-id": cacheId
+            }
+        });
     }
 
     return {
@@ -200,28 +269,32 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
          *
          * @param {string} key
          */
-        del(key: string): void {
+        delete(key: string): void {
             assertIsClosingOrClosed();
             publish(`del:${key}`);
-            internalDel(key);
+            internalDelete(key);
         },
         /**
-         * Resets the entire cache and distribute the reset command to all subscribers.         *
+         * Clear the entire cache and distribute the clear command to all subscribers.
+         *
          */
-        reset(): void {
+        clear(): void {
             assertIsClosingOrClosed();
             publish("reset");
-            internalReset();
+            internalClear();
         },
         /**
-         * This function checks if the item is in the cache and if so returns it, otherwise 
+         * This function checks if the item is in the cache and if so returns it, otherwise
          * it invokes the loadItem function to retrieve the item and then it stores it in the cache.
          *
          * @param {string} key
          * @param {(key: string) => Promise<T>} loadItem
          * @returns {Promise<T>}
          */
-        async getOrLoad(key: string, loadItem: (key: string) => Promise<T>): Promise<T> {
+        async getOrLoad(
+            key: string,
+            loadItem: (key: string) => Promise<T>
+        ): Promise<T> {
             assertIsClosingOrClosed();
             const item = cache.get(key);
             if (item !== undefined && item !== null) {
@@ -233,9 +306,13 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             loadItemPromises[key] = loadItem(key);
             try {
                 const loadedItem = await loadItemPromises[key];
-                if ((options.reconnectionOptions?.allowStaleData || !reconnecting) && 
-                    loadItemPromises[key] !== undefined && 
-                    (loadedItem !== undefined && loadedItem !== null)) {
+                if (
+                    (options.reconnectionOptions?.allowStaleData ||
+                        !reconnecting) &&
+                    loadItemPromises[key] !== undefined &&
+                    loadedItem !== undefined &&
+                    loadedItem !== null
+                ) {
                     cache.set(key, loadedItem);
                 }
                 return loadedItem;
@@ -246,26 +323,22 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
             }
         },
         has: assertIsClosingOrClosedDecorator(cache.has.bind(cache)),
-        keys: assertIsClosingOrClosedDecorator(cache.keys.bind(cache)),
+        keys: assertIsClosingOrClosedDecorator(() => Array.from(cache.keys())),
         doesAllowStale(): boolean {
             assertIsClosingOrClosed();
             return cache.allowStale;
         },
-        getItemCount(): number {
+        getSize(): number {
             assertIsClosingOrClosed();
-            return cache.itemCount;
-        },
-        getLength(): number {
-            assertIsClosingOrClosed();
-            return cache.length;
+            return cache.size;
         },
         getMax(): number {
             assertIsClosingOrClosed();
             return cache.max;
         },
-        getMaxAge(): number {
+        getTTL(): number {
             assertIsClosingOrClosed();
-            return cache.maxAge;
+            return cache.ttl;
         },
         async close(): Promise<void> {
             closing = true;
@@ -275,28 +348,40 @@ export async function createRabbitLRUCache<T>(options: RabbitLRUCacheOptions<T>)
                 publisherChannel.close()
             ]);
             await connection.close();
-            cache.reset();
+            cache.clear();
         },
-        prune(): void {
+        purgeStale(): void {
             assertIsClosingOrClosed();
-            cache.prune();
+            cache.purgeStale();
         },
-        addInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
+        addInvalidationMessageReceivedListener(
+            fn: (messageContent: string, publisherCacheId: string) => void
+        ): void {
             eventEmitter.addListener("invalidation-message-received", fn);
         },
-        removeInvalidationMessageReceivedListener(fn: (messageContent: string, publisherCacheId: string) => void): void {
+        removeInvalidationMessageReceivedListener(
+            fn: (messageContent: string, publisherCacheId: string) => void
+        ): void {
             eventEmitter.removeListener("invalidation-message-received", fn);
         },
-        addReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
+        addReconnectingListener(
+            fn: (error: Error, attempt: number, retryInterval: number) => void
+        ): void {
             eventEmitter.addListener("reconnecting", fn);
         },
-        removeReconnectingListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
+        removeReconnectingListener(
+            fn: (error: Error, attempt: number, retryInterval: number) => void
+        ): void {
             eventEmitter.removeListener("reconnecting", fn);
         },
-        addReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
+        addReconnectedListener(
+            fn: (error: Error, attempt: number, retryInterval: number) => void
+        ): void {
             eventEmitter.addListener("reconnected", fn);
         },
-        removeReconnectedListener(fn: (error: Error, attempt: number, retryInterval: number) => void): void {
+        removeReconnectedListener(
+            fn: (error: Error, attempt: number, retryInterval: number) => void
+        ): void {
             eventEmitter.removeListener("reconnected", fn);
         }
     };

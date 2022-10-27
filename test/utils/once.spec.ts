@@ -1,14 +1,15 @@
-import once from '../../src/utils/once';
+import once from "../../src/utils/once";
 
 describe("once", () => {
-
     it("should throw a TypeError if input is not function", () => {
         expect.assertions(2);
         try {
             once<object>({} as unknown as (...args) => object);
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof TypeError).toBe(true);
-            expect((error as Error).message).toBe("Input parameter must be a function");
+            expect((error as Error).message).toBe(
+                "Input parameter must be a function"
+            );
         }
     });
 

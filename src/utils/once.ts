@@ -11,5 +11,5 @@ export default function once<T>(fn: (...args) => T): (...args) => T {
         result = fn.call(null, ...args);
         executed = true;
         return result;
-    }
+    };
 }

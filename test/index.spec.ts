@@ -3,8 +3,16 @@ import { Options, Message, MessageFields } from "amqplib";
 import { ClosingError } from "../src/errors/ClosingError";
 import * as LRUCache from "lru-cache";
 import { AssertionError } from "assert";
-import { amqplibMock, consumer, emitter, publish, connectMock, assertQueueMock, onMock } from "./amqplib-mock";
-import { LRUCacheMock, delMock, resetMock } from "./lru-cache-mock";
+import {
+    amqplibMock,
+    consumer,
+    emitter,
+    publish,
+    connectMock,
+    assertQueueMock,
+    onMock
+} from "./amqplib-mock";
+import { clearMock, deleteMock, LRUCacheMock } from "./lru-cache-mock";
 import { randomUUID } from "crypto";
 
 const amqpConnectOptions: Options.Connect = {
@@ -13,13 +21,14 @@ const amqpConnectOptions: Options.Connect = {
     password: "guest"
 };
 
-function requireRabbitLRUCache<T>(): (options: RabbitLRUCacheOptions<T>) => Promise<RabbitLRUCache<T>> {
+function requireRabbitLRUCache<T>(): (
+    options: RabbitLRUCacheOptions<T>
+) => Promise<RabbitLRUCache<T>> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require("../src/index").default;
 }
 
 describe("rabbit-lru-cache", () => {
-
     it("should throw an assert error if options is null", async () => {
         // Arrange
         expect.assertions(2);
@@ -27,8 +36,10 @@ describe("rabbit-lru-cache", () => {
         // Act
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
-            await createRabbitLRUCache(null as unknown as RabbitLRUCacheOptions<string>);
-        } catch(error) {
+            await createRabbitLRUCache(
+                null as unknown as RabbitLRUCacheOptions<string>
+            );
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
             expect((error as Error).message).toBe("options is required");
         }
@@ -41,8 +52,10 @@ describe("rabbit-lru-cache", () => {
         // Act
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
-            await createRabbitLRUCache(undefined as unknown as RabbitLRUCacheOptions<string>);
-        } catch(error) {
+            await createRabbitLRUCache(
+                undefined as unknown as RabbitLRUCacheOptions<string>
+            );
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
             expect((error as Error).message).toBe("options is required");
         }
@@ -57,10 +70,10 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: null as unknown as string,
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
             expect((error as Error).message).toBe("options.name is required");
         }
@@ -75,10 +88,10 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
             expect((error as Error).message).toBe("options.name is required");
         }
@@ -93,12 +106,17 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: null as unknown as LRUCache.Options<string, string>,
+                LRUCacheOptions: null as unknown as LRUCache.Options<
+                    string,
+                    string
+                >,
                 amqpConnectOptions
             });
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect((error as Error).message).toBe("options.LRUCacheOptions is required");
+            expect((error as Error).message).toBe(
+                "options.LRUCacheOptions is required"
+            );
         }
     });
 
@@ -111,22 +129,24 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: { },
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions: null as unknown as Options.Connect
             });
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof AssertionError).toBe(true);
-            expect((error as Error).message).toBe("options.amqpConnectOptions is required");
+            expect((error as Error).message).toBe(
+                "options.amqpConnectOptions is required"
+            );
         }
     });
 
-    it("should invalidate cache key on del key", async () => {
+    it("should invalidate cache key on delete key", async () => {
         // Arrange
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
@@ -154,23 +174,51 @@ describe("rabbit-lru-cache", () => {
                 promiseCache3Resolve = resolve;
                 cache3?.addInvalidationMessageReceivedListener(resolve);
             });
-            expect(await cache1.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache2.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache3.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+            expect(
+                await cache1.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A")
+                )
+            ).toBe("VALUE_A");
+            expect(
+                await cache2.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A")
+                )
+            ).toBe("VALUE_A");
+            expect(
+                await cache3.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A")
+                )
+            ).toBe("VALUE_A");
 
             // Act
-            cache1.del("KEY_A");
+            cache1.delete("KEY_A");
 
             // Assert
             await promiseCache2GetTheMessage;
             await promiseCache3GetTheMessage;
-            expect(await cache1.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache2.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache3.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(
+                await cache1.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
+            expect(
+                await cache2.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
+            expect(
+                await cache3.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
         } finally {
             await cache1?.close();
-            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
-            cache3?.removeInvalidationMessageReceivedListener(promiseCache3Resolve);
+            cache2?.removeInvalidationMessageReceivedListener(
+                promiseCache2Resolve
+            );
+            cache3?.removeInvalidationMessageReceivedListener(
+                promiseCache3Resolve
+            );
             await cache2?.close();
             await cache3?.close();
         }
@@ -181,7 +229,7 @@ describe("rabbit-lru-cache", () => {
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -198,7 +246,10 @@ describe("rabbit-lru-cache", () => {
             let emittedMessageContent, emittedPublisherCacheId;
             const promiseCache2GetTheMessage = new Promise<void>(resolve => {
                 promiseCache2Resolve = resolve;
-                cache2?.addInvalidationMessageReceivedListener(function (messageContent, publisherCacheId) {
+                cache2?.addInvalidationMessageReceivedListener(function (
+                    messageContent,
+                    publisherCacheId
+                ) {
                     emittedMessageContent = messageContent;
                     emittedPublisherCacheId = publisherCacheId;
                     resolve();
@@ -206,15 +257,17 @@ describe("rabbit-lru-cache", () => {
             });
 
             // Act
-            cache1.del("KEY_A");
+            cache1.delete("KEY_A");
 
             // Assert
             await promiseCache2GetTheMessage;
-            expect(emittedMessageContent).toBe('del:KEY_A');
+            expect(emittedMessageContent).toBe("del:KEY_A");
             expect(emittedPublisherCacheId).toBeDefined();
         } finally {
             await cache1?.close();
-            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
+            cache2?.removeInvalidationMessageReceivedListener(
+                promiseCache2Resolve
+            );
             await cache2?.close();
         }
     });
@@ -223,7 +276,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
@@ -233,16 +286,20 @@ describe("rabbit-lru-cache", () => {
             });
 
             // Act
-            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(undefined as unknown as string));
+            const result1 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve(undefined as unknown as string)
+            );
 
             // Assert
             expect(result1).toBe(undefined);
-            expect(cache.getItemCount()).toBe(0);
+            expect(cache.getSize()).toBe(0);
 
             // Act
-            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('VALUE_A'));
-            expect(result2).toBe('VALUE_A');
-            expect(cache.getItemCount()).toBe(1);
+            const result2 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve("VALUE_A")
+            );
+            expect(result2).toBe("VALUE_A");
+            expect(cache.getSize()).toBe(1);
         } finally {
             await cache?.close();
         }
@@ -252,7 +309,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
@@ -262,16 +319,20 @@ describe("rabbit-lru-cache", () => {
             });
 
             // Act
-            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(null as unknown as string));
+            const result1 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve(null as unknown as string)
+            );
 
             // Assert
             expect(result1).toBe(null);
-            expect(cache.getItemCount()).toBe(0);
+            expect(cache.getSize()).toBe(0);
 
             // Act
-            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('VALUE_A'));
-            expect(result2).toBe('VALUE_A');
-            expect(cache.getItemCount()).toBe(1);
+            const result2 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve("VALUE_A")
+            );
+            expect(result2).toBe("VALUE_A");
+            expect(cache.getSize()).toBe(1);
         } finally {
             await cache?.close();
         }
@@ -281,7 +342,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
@@ -291,13 +352,17 @@ describe("rabbit-lru-cache", () => {
             });
 
             // Act
-            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(''));
-            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve('A'));
+            const result1 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve("")
+            );
+            const result2 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve("A")
+            );
 
             // Assert
-            expect(result1).toBe('');
-            expect(result2).toBe('');
-            expect(cache.getItemCount()).toBe(1);
+            expect(result1).toBe("");
+            expect(result2).toBe("");
+            expect(cache.getSize()).toBe(1);
         } finally {
             await cache?.close();
         }
@@ -307,7 +372,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<number> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<number>();
             cache = await createRabbitLRUCache({
@@ -317,13 +382,17 @@ describe("rabbit-lru-cache", () => {
             });
 
             // Act
-            const result1 = await cache.getOrLoad("KEY_A", () => Promise.resolve(0));
-            const result2 = await cache.getOrLoad("KEY_A", () => Promise.resolve(1));
+            const result1 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve(0)
+            );
+            const result2 = await cache.getOrLoad("KEY_A", () =>
+                Promise.resolve(1)
+            );
 
             // Assert
             expect(result1).toBe(0);
             expect(result2).toBe(0);
-            expect(cache.getItemCount()).toBe(1);
+            expect(cache.getSize()).toBe(1);
         } finally {
             await cache?.close();
         }
@@ -333,7 +402,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
@@ -341,7 +410,12 @@ describe("rabbit-lru-cache", () => {
                 LRUCacheOptions,
                 amqpConnectOptions
             });
-            const loadPromise: () => Promise<string> = jest.fn(() => new Promise(resolve => setTimeout(() => resolve("VALUE_A"), 0)));
+            const loadPromise: () => Promise<string> = jest.fn(
+                () =>
+                    new Promise(resolve =>
+                        setTimeout(() => resolve("VALUE_A"), 0)
+                    )
+            );
 
             // Act
             const results = await Promise.all([
@@ -363,7 +437,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         let cache: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
@@ -372,7 +446,12 @@ describe("rabbit-lru-cache", () => {
                 amqpConnectOptions
             });
             const error = Error("Oops, something goes wrong");
-            const loadPromise: () => Promise<string> = jest.fn(() => new Promise((resolve, reject) => setTimeout(() => reject(error), 0)));
+            const loadPromise: () => Promise<string> = jest.fn(
+                () =>
+                    new Promise((resolve, reject) =>
+                        setTimeout(() => reject(error), 0)
+                    )
+            );
 
             // Act
             const results = await Promise.allSettled([
@@ -381,12 +460,12 @@ describe("rabbit-lru-cache", () => {
                 cache.getOrLoad("KEY_A", loadPromise)
             ]);
 
-            // Assert     
+            // Assert
             expect(loadPromise).toBeCalledTimes(1);
-            expect(cache.getLength()).toBe(0);   
-            expect(results[0].status).toBe("rejected");   
+            expect(cache.getSize()).toBe(0);
+            expect(results[0].status).toBe("rejected");
             expect(results[1].status).toBe("rejected");
-            expect(results[2].status).toBe("rejected");  
+            expect(results[2].status).toBe("rejected");
         } finally {
             await cache?.close();
         }
@@ -397,7 +476,7 @@ describe("rabbit-lru-cache", () => {
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -421,14 +500,22 @@ describe("rabbit-lru-cache", () => {
 
             // Act
             await Promise.all([
-                cache1.getOrLoad("KEY_A", () => new Promise<string>(resolve => {
-                    resolvePromiseLoadedItem1 = resolve;
-                })),
-                cache2.getOrLoad("KEY_A", () => new Promise<string>(resolve => {
-                    resolvePromiseLoadedItem2 = resolve;
-                })),
+                cache1.getOrLoad(
+                    "KEY_A",
+                    () =>
+                        new Promise<string>(resolve => {
+                            resolvePromiseLoadedItem1 = resolve;
+                        })
+                ),
+                cache2.getOrLoad(
+                    "KEY_A",
+                    () =>
+                        new Promise<string>(resolve => {
+                            resolvePromiseLoadedItem2 = resolve;
+                        })
+                ),
                 new Promise<void>(resolve => {
-                    cache1?.del("KEY_A");
+                    cache1?.delete("KEY_A");
                     resolvePromiseLoadedItem1("VALUE_A");
                     promiseCache2GetTheMessage.then(() => {
                         resolvePromiseLoadedItem2("VALUE_A");
@@ -437,16 +524,26 @@ describe("rabbit-lru-cache", () => {
                 })
             ]);
 
-            // Assert     
+            // Assert
             expect(cache1.keys()).toStrictEqual([]);
-            expect(await cache1.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(
+                await cache1.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
             expect(cache1.keys()).toStrictEqual(["KEY_A"]);
             expect(cache2.keys()).toStrictEqual([]);
-            expect(await cache2.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(
+                await cache2.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
             expect(cache2.keys()).toStrictEqual(["KEY_A"]);
         } finally {
             await cache1?.close();
-            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
+            cache2?.removeInvalidationMessageReceivedListener(
+                promiseCache2Resolve
+            );
             await cache2?.close();
         }
     });
@@ -456,7 +553,7 @@ describe("rabbit-lru-cache", () => {
         let cache1: RabbitLRUCache<string> | null = null;
         let cache2: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -480,14 +577,22 @@ describe("rabbit-lru-cache", () => {
 
             // Act
             await Promise.all([
-                cache1.getOrLoad("KEY_A", () => new Promise<string>(resolve => {
-                    resolvePromiseLoadedItem1 = resolve;
-                })),
-                cache2.getOrLoad("KEY_A", () => new Promise<string>(resolve => {
-                    resolvePromiseLoadedItem2 = resolve;
-                })),
+                cache1.getOrLoad(
+                    "KEY_A",
+                    () =>
+                        new Promise<string>(resolve => {
+                            resolvePromiseLoadedItem1 = resolve;
+                        })
+                ),
+                cache2.getOrLoad(
+                    "KEY_A",
+                    () =>
+                        new Promise<string>(resolve => {
+                            resolvePromiseLoadedItem2 = resolve;
+                        })
+                ),
                 new Promise<void>(resolve => {
-                    cache1?.reset();
+                    cache1?.clear();
                     resolvePromiseLoadedItem1("VALUE_A");
                     promiseCache2GetTheMessage.then(() => {
                         resolvePromiseLoadedItem2("VALUE_A");
@@ -496,16 +601,26 @@ describe("rabbit-lru-cache", () => {
                 })
             ]);
 
-            // Assert     
+            // Assert
             expect(cache1.keys()).toStrictEqual([]);
-            expect(await cache1.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(
+                await cache1.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
             expect(cache1.keys()).toStrictEqual(["KEY_A"]);
             expect(cache2.keys()).toStrictEqual([]);
-            expect(await cache2.getOrLoad("KEY_A", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
+            expect(
+                await cache2.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_B")
+                )
+            ).toBe("VALUE_B");
             expect(cache2.keys()).toStrictEqual(["KEY_A"]);
         } finally {
             await cache1?.close();
-            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
+            cache2?.removeInvalidationMessageReceivedListener(
+                promiseCache2Resolve
+            );
             await cache2?.close();
         }
     });
@@ -516,7 +631,7 @@ describe("rabbit-lru-cache", () => {
         let cache2: RabbitLRUCache<string> | null = null;
         let cache3: RabbitLRUCache<string> | null = null;
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 1000 };
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
@@ -544,38 +659,54 @@ describe("rabbit-lru-cache", () => {
                 promiseCache3Resolve = resolve;
                 cache3?.addInvalidationMessageReceivedListener(resolve);
             });
-            for(let i = 0; i < 1000; i++) {
+            for (let i = 0; i < 1000; i++) {
                 const key = `KEY_${i}`;
-                expect(await cache1.getOrLoad(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-                expect(await cache2.getOrLoad(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-                expect(await cache3.getOrLoad(key, () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
+                expect(
+                    await cache1.getOrLoad(key, () =>
+                        Promise.resolve("VALUE_A")
+                    )
+                ).toBe("VALUE_A");
+                expect(
+                    await cache2.getOrLoad(key, () =>
+                        Promise.resolve("VALUE_A")
+                    )
+                ).toBe("VALUE_A");
+                expect(
+                    await cache3.getOrLoad(key, () =>
+                        Promise.resolve("VALUE_A")
+                    )
+                ).toBe("VALUE_A");
             }
-            expect(cache1.getLength()).toBe(1000);
-            expect(cache1.getItemCount()).toBe(1000);
-            expect(cache2.getLength()).toBe(1000);
-            expect(cache2.getItemCount()).toBe(1000);
-            expect(cache3.getLength()).toBe(1000);
-            expect(cache3.getItemCount()).toBe(1000);
+            expect(cache1.getSize()).toBe(1000);
+            expect(cache1.getSize()).toBe(1000);
+            expect(cache2.getSize()).toBe(1000);
+            expect(cache2.getSize()).toBe(1000);
+            expect(cache3.getSize()).toBe(1000);
+            expect(cache3.getSize()).toBe(1000);
 
             // Act
-            cache1.reset();
+            cache1.clear();
 
             // Assert
             await promiseCache2GetTheMessage;
             await promiseCache3GetTheMessage;
             expect(cache1.keys().length).toBe(0);
-            expect(cache1.getLength()).toBe(0);
-            expect(cache1.getItemCount()).toBe(0);
+            expect(cache1.getSize()).toBe(0);
+            expect(cache1.getSize()).toBe(0);
             expect(cache2.keys().length).toBe(0);
-            expect(cache2.getLength()).toBe(0);
-            expect(cache2.getItemCount()).toBe(0);
+            expect(cache2.getSize()).toBe(0);
+            expect(cache2.getSize()).toBe(0);
             expect(cache3.keys().length).toBe(0);
-            expect(cache3.getLength()).toBe(0);
-            expect(cache3.getItemCount()).toBe(0);
+            expect(cache3.getSize()).toBe(0);
+            expect(cache3.getSize()).toBe(0);
         } finally {
             await cache1?.close();
-            cache2?.removeInvalidationMessageReceivedListener(promiseCache2Resolve);
-            cache3?.removeInvalidationMessageReceivedListener(promiseCache3Resolve);
+            cache2?.removeInvalidationMessageReceivedListener(
+                promiseCache2Resolve
+            );
+            cache3?.removeInvalidationMessageReceivedListener(
+                promiseCache3Resolve
+            );
             await cache2?.close();
             await cache3?.close();
         }
@@ -585,7 +716,7 @@ describe("rabbit-lru-cache", () => {
         // Arrange
         expect.assertions(2);
         const name = `test-${randomUUID()}`;
-        const LRUCacheOptions = {};
+        const LRUCacheOptions = { max: 10 };
         const createRabbitLRUCache = requireRabbitLRUCache<string>();
         const cache = await createRabbitLRUCache({
             name,
@@ -596,10 +727,14 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
-            expect(await cache.getOrLoad("KEY", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-        } catch(error) {
+            expect(
+                await cache.getOrLoad("KEY", () => Promise.resolve("VALUE_A"))
+            ).toBe("VALUE_A");
+        } catch (error) {
             expect(error instanceof ClosingError).toBe(true);
-            expect((error as Error).message).toBe("Cache is closing or has been closed");
+            expect((error as Error).message).toBe(
+                "Cache is closing or has been closed"
+            );
         }
     });
 
@@ -615,13 +750,15 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
             consumer.onMessage(null);
-        } catch(error) {
+        } catch (error) {
             expect(error instanceof Error).toBe(true);
-            expect((error as Error).message).toBe("consumer has been cancelled by RabbitMq");
+            expect((error as Error).message).toBe(
+                "consumer has been cancelled by RabbitMq"
+            );
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -640,7 +777,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
             consumer.onMessage({
@@ -653,8 +790,8 @@ describe("rabbit-lru-cache", () => {
                 fields: {} as unknown as MessageFields
             });
 
-            expect(delMock).toHaveBeenCalledTimes(0);
-            expect(resetMock).toHaveBeenCalledTimes(0);
+            expect(deleteMock).toHaveBeenCalledTimes(0);
+            expect(clearMock).toHaveBeenCalledTimes(0);
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -672,7 +809,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
 
@@ -684,25 +821,35 @@ describe("rabbit-lru-cache", () => {
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            let reconnectingError, reconnectingAttempt, reconnectingRetryInterval;
-            const onReconnectingEvent = function(error, attempt, retryInterval): void {
+            let reconnectingError,
+                reconnectingAttempt,
+                reconnectingRetryInterval;
+            const onReconnectingEvent = function (
+                error,
+                attempt,
+                retryInterval
+            ): void {
                 reconnectingError = error;
                 reconnectingAttempt = attempt;
                 reconnectingRetryInterval = retryInterval;
                 resolvePromiseReconnectingEventTriggered();
-            }
+            };
             let reconnectedError, reconnectedAttempt, reconnectedRetryInterval;
-            const onReconnectedEvent = function(error, attempt, retryInterval): void {
+            const onReconnectedEvent = function (
+                error,
+                attempt,
+                retryInterval
+            ): void {
                 reconnectedError = error;
                 reconnectedAttempt = attempt;
                 reconnectedRetryInterval = retryInterval;
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectingListener(onReconnectingEvent);
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
-            const connectionError = Error("RabbitMq is gone")
+            const connectionError = Error("RabbitMq is gone");
             emitter.emitError(connectionError);
 
             await promiseReconnectingEventTriggered;
@@ -734,7 +881,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
 
@@ -742,41 +889,94 @@ describe("rabbit-lru-cache", () => {
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            const connectionError = Error("RabbitMq is gone")
-            const onReconnectedEvent = function(): void {
+            const connectionError = Error("RabbitMq is gone");
+            const onReconnectedEvent = function (): void {
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A"))).toBe("VALUE_A");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B"))).toBe("VALUE_B");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C"))).toBe("VALUE_C");
+            expect(
+                await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A"))
+            ).toBe("VALUE_A");
+            expect(
+                await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B"))
+            ).toBe("VALUE_B");
+            expect(
+                await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C"))
+            ).toBe("VALUE_C");
 
             emitter.emitError(connectionError);
 
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A3"))).toBe("VALUE_A3");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B3"))).toBe("VALUE_B3");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C3"))).toBe("VALUE_C3");
-            expect(cache.getLength()).toBe(0);
-            cache.del("KEY_A");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A2")
+                )
+            ).toBe("VALUE_A2");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("VALUE_B2")
+                )
+            ).toBe("VALUE_B2");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("VALUE_C2")
+                )
+            ).toBe("VALUE_C2");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A3")
+                )
+            ).toBe("VALUE_A3");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("VALUE_B3")
+                )
+            ).toBe("VALUE_B3");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("VALUE_C3")
+                )
+            ).toBe("VALUE_C3");
+            expect(cache.getSize()).toBe(0);
+            cache.delete("KEY_A");
             expect(publish).toHaveBeenCalledTimes(0);
 
             await promiseReconnectedEventTriggered;
             cache.removeReconnectedListener(onReconnectedEvent);
 
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A4"))).toBe("VALUE_A4");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B4"))).toBe("VALUE_B4");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C4"))).toBe("VALUE_C4");
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A5"))).toBe("VALUE_A4");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B5"))).toBe("VALUE_B4");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C5"))).toBe("VALUE_C4");
-            cache.del("KEY_A");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A4")
+                )
+            ).toBe("VALUE_A4");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("VALUE_B4")
+                )
+            ).toBe("VALUE_B4");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("VALUE_C4")
+                )
+            ).toBe("VALUE_C4");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A5")
+                )
+            ).toBe("VALUE_A4");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("VALUE_B5")
+                )
+            ).toBe("VALUE_B4");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("VALUE_C5")
+                )
+            ).toBe("VALUE_C4");
+            cache.delete("KEY_A");
             expect(publish).toHaveBeenCalledTimes(1);
-
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -794,7 +994,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
 
@@ -802,26 +1002,26 @@ describe("rabbit-lru-cache", () => {
             const promiseReconnectingEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectingEventTriggered = resolve;
             });
-            const onReconnectingEvent = function(): void {
+            const onReconnectingEvent = function (): void {
                 resolvePromiseReconnectingEventTriggered();
-            }
+            };
             cache.addReconnectingListener(onReconnectingEvent);
 
             let resolvePromiseReconnectedEventTriggered;
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            const onReconnectedEvent = function(): void {
+            const onReconnectedEvent = function (): void {
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             const connectionError = Error("RabbitMq is gone");
             emitter.emitError(connectionError);
             await promiseReconnectingEventTriggered;
-            expect(resetMock).toHaveBeenCalledTimes(1);
+            expect(clearMock).toHaveBeenCalledTimes(1);
             await promiseReconnectedEventTriggered;
-            expect(resetMock).toHaveBeenCalledTimes(2);
+            expect(clearMock).toHaveBeenCalledTimes(2);
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -839,26 +1039,49 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions,
                 reconnectionOptions: {
                     allowStaleData: true
                 }
             });
 
-            const connectionError = Error("RabbitMq is gone")
+            const connectionError = Error("RabbitMq is gone");
             emitter.emitError(connectionError);
 
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"))).toBe("VALUE_A2");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("VALUE_B2"))).toBe("VALUE_B2");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("VALUE_C2"))).toBe("VALUE_C2");
-            expect(await cache.getOrLoad("KEY_A", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_A2");
-            expect(await cache.getOrLoad("KEY_B", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_B2");
-            expect(await cache.getOrLoad("KEY_C", () => Promise.resolve("NOT_NEEDED"))).toBe("VALUE_C2");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A2")
+                )
+            ).toBe("VALUE_A2");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("VALUE_B2")
+                )
+            ).toBe("VALUE_B2");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("VALUE_C2")
+                )
+            ).toBe("VALUE_C2");
+            expect(
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("NOT_NEEDED")
+                )
+            ).toBe("VALUE_A2");
+            expect(
+                await cache.getOrLoad("KEY_B", () =>
+                    Promise.resolve("NOT_NEEDED")
+                )
+            ).toBe("VALUE_B2");
+            expect(
+                await cache.getOrLoad("KEY_C", () =>
+                    Promise.resolve("NOT_NEEDED")
+                )
+            ).toBe("VALUE_C2");
 
-            cache.del("KEY_A");
+            cache.delete("KEY_A");
             expect(publish).toHaveBeenCalledTimes(0);
-
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -875,7 +1098,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions,
                 reconnectionOptions: {
                     retryFactor: 1
@@ -887,12 +1110,16 @@ describe("rabbit-lru-cache", () => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
             let reconnectedError, reconnectedAttempt, reconnectedRetryInterval;
-            const onReconnectedEvent = function(error, attempt, retryInterval): void {
+            const onReconnectedEvent = function (
+                error,
+                attempt,
+                retryInterval
+            ): void {
                 reconnectedError = error;
                 reconnectedAttempt = attempt;
                 reconnectedRetryInterval = retryInterval;
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             const reconnectionError1 = Error("RabbitMq error reconnecting 1");
@@ -927,7 +1154,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions,
                 reconnectionOptions: {
                     retryFactor: 3
@@ -939,11 +1166,15 @@ describe("rabbit-lru-cache", () => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
             let reconnectedAttempt, reconnectedRetryInterval;
-            const onReconnectedEvent = function(error, attempt, retryInterval): void {
+            const onReconnectedEvent = function (
+                error,
+                attempt,
+                retryInterval
+            ): void {
                 reconnectedAttempt = attempt;
                 reconnectedRetryInterval = retryInterval;
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             const reconnectionError = Error("RabbitMq error reconnecting");
@@ -976,7 +1207,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions,
                 reconnectionOptions: {
                     retryMaxInterval: 500
@@ -988,11 +1219,15 @@ describe("rabbit-lru-cache", () => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
             let reconnectedAttempt, reconnectedRetryInterval;
-            const onReconnectedEvent = function(error, attempt, retryInterval): void {
+            const onReconnectedEvent = function (
+                error,
+                attempt,
+                retryInterval
+            ): void {
                 reconnectedAttempt = attempt;
                 reconnectedRetryInterval = retryInterval;
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             const reconnectionError = Error("RabbitMq error reconnecting");
@@ -1021,27 +1256,33 @@ describe("rabbit-lru-cache", () => {
         jest.clearAllMocks().resetModules();
         jest.mock("amqplib", () => amqplibMock);
         try {
-            assertQueueMock
-            .mockImplementationOnce(() => new Promise((resolve, reject) =>
-                setTimeout(() => {
-                    const error = Error('An error here trying to assert queue')
-                    emitter.emitError(error);
-                    reject(error);
-                }, 0)));
+            assertQueueMock.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) =>
+                        setTimeout(() => {
+                            const error = Error(
+                                "An error here trying to assert queue"
+                            );
+                            emitter.emitError(error);
+                            reject(error);
+                        }, 0)
+                    )
+            );
 
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
 
             // Act
             await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
-
-        } catch(error) {
+        } catch (error) {
             expect(assertQueueMock).toBeCalledTimes(1);
             expect(onMock).not.toBeCalled();
-            expect((error as Error).message).toBe('An error here trying to assert queue');
+            expect((error as Error).message).toBe(
+                "An error here trying to assert queue"
+            );
         } finally {
             jest.unmock("amqplib");
             assertQueueMock.mockRestore();
@@ -1056,32 +1297,40 @@ describe("rabbit-lru-cache", () => {
 
         try {
             assertQueueMock
-                .mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 0)))
-                .mockImplementationOnce(() => new Promise((resolve, reject) =>
-                    setTimeout(() => {
-                        const error = Error('Channel closed by server: 405 (RESOURCE-LOCKED) with message "RESOURCE_LOCKED - cannot obtain exclusive access to locked queue')
-                        emitter.emitError(error);
-                        reject(error);
-                    }, 0)));
+                .mockImplementationOnce(
+                    () => new Promise(resolve => setTimeout(resolve, 0))
+                )
+                .mockImplementationOnce(
+                    () =>
+                        new Promise((resolve, reject) =>
+                            setTimeout(() => {
+                                const error = Error(
+                                    'Channel closed by server: 405 (RESOURCE-LOCKED) with message "RESOURCE_LOCKED - cannot obtain exclusive access to locked queue'
+                                );
+                                emitter.emitError(error);
+                                reject(error);
+                            }, 0)
+                        )
+                );
 
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions,
                 reconnectionOptions: {
                     retryFactor: 1
                 }
             });
-            const onReconnectingEvent = jest.fn()
+            const onReconnectingEvent = jest.fn();
             cache.addReconnectingListener(onReconnectingEvent);
             let resolvePromiseReconnectedEventTriggered;
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            const onReconnectedEvent = function(): void {
+            const onReconnectedEvent = function (): void {
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
@@ -1092,7 +1341,6 @@ describe("rabbit-lru-cache", () => {
             await promiseReconnectedEventTriggered;
             expect(onReconnectingEvent).toBeCalledTimes(2);
             expect(assertQueueMock).toBeCalledTimes(3);
-
         } finally {
             cache?.close();
             jest.unmock("amqplib");
@@ -1110,7 +1358,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
 
@@ -1118,13 +1366,13 @@ describe("rabbit-lru-cache", () => {
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            const onReconnectedEvent = function(): void {
+            const onReconnectedEvent = function (): void {
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
 
             // Act
-            const connectionError = Error("RabbitMq is gone")
+            const connectionError = Error("RabbitMq is gone");
             emitter.emitError(connectionError);
 
             await promiseReconnectedEventTriggered;
@@ -1132,10 +1380,13 @@ describe("rabbit-lru-cache", () => {
             cache.removeReconnectedListener(onReconnectedEvent);
 
             expect(assertQueueMock).toBeCalledTimes(2);
-            const queueNameOnCacheCreation = (assertQueueMock.mock.calls[0] as string[])[0];
-            const queueNameOnReconnect = (assertQueueMock.mock.calls[1] as string[])[0];
+            const queueNameOnCacheCreation = (
+                assertQueueMock.mock.calls[0] as string[]
+            )[0];
+            const queueNameOnReconnect = (
+                assertQueueMock.mock.calls[1] as string[]
+            )[0];
             expect(queueNameOnReconnect).not.toBe(queueNameOnCacheCreation);
-
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -1152,7 +1403,7 @@ describe("rabbit-lru-cache", () => {
             const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
-                LRUCacheOptions: {},
+                LRUCacheOptions: { max: 10 },
                 amqpConnectOptions
             });
 
@@ -1160,21 +1411,22 @@ describe("rabbit-lru-cache", () => {
             const promiseReconnectedEventTriggered = new Promise(resolve => {
                 resolvePromiseReconnectedEventTriggered = resolve;
             });
-            const onReconnectedEvent = function(): void {
+            const onReconnectedEvent = function (): void {
                 resolvePromiseReconnectedEventTriggered();
-            }
+            };
             cache.addReconnectedListener(onReconnectedEvent);
-            const onReconnectingEvent = function(): void {
-                throw new Error('This is an error fired in the reconnecting event listener');
-            }
+            const onReconnectingEvent = function (): void {
+                throw new Error(
+                    "This is an error fired in the reconnecting event listener"
+                );
+            };
             cache.addReconnectingListener(onReconnectingEvent);
 
             // Act
-            const connectionError = Error("RabbitMq is gone")
+            const connectionError = Error("RabbitMq is gone");
             emitter.emitError(connectionError);
 
             await promiseReconnectedEventTriggered;
-
         } finally {
             await cache?.close();
             jest.unmock("amqplib");
@@ -1182,7 +1434,6 @@ describe("rabbit-lru-cache", () => {
     });
 
     describe("getMax()", () => {
-
         it("should return the LRU cache max value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
@@ -1209,14 +1460,14 @@ describe("rabbit-lru-cache", () => {
         });
     });
 
-    describe("getMaxAge()", () => {
-
-        it("should return the LRU cache max age value", async () => {
+    describe("getTTL()", () => {
+        it("should return the LRU cache ttl value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${randomUUID()}`;
-            const LRUCacheOptions = {
-                maxAge: 100
+            const LRUCacheOptions: LRUCache.Options<string, string> = {
+                ttl: 100,
+                max: 100
             };
             try {
                 const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -1227,7 +1478,7 @@ describe("rabbit-lru-cache", () => {
                 });
 
                 // Act
-                const result = cache.getMaxAge();
+                const result = cache.getTTL();
 
                 // Assert
                 expect(result).toBe(100);
@@ -1237,14 +1488,14 @@ describe("rabbit-lru-cache", () => {
         });
     });
 
-    describe("prune()", () => {
-
+    describe("purgeStale()", () => {
         it("should prune expired items in the LRU cache", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${randomUUID()}`;
             const LRUCacheOptions = {
-                maxAge: 1
+                ttl: 1,
+                max: 10
             };
             try {
                 const createRabbitLRUCache = requireRabbitLRUCache<string>();
@@ -1255,14 +1506,16 @@ describe("rabbit-lru-cache", () => {
                 });
 
                 // Act
-                await cache.getOrLoad("KEY_A", () => Promise.resolve("VALUE_A2"));
-                expect(cache.getItemCount()).toBe(1);
+                await cache.getOrLoad("KEY_A", () =>
+                    Promise.resolve("VALUE_A2")
+                );
+                expect(cache.getSize()).toBe(1);
                 await new Promise(resolve => setTimeout(resolve, 2));
-                expect(cache.getItemCount()).toBe(1);
-                cache.prune();
+                expect(cache.getSize()).toBe(1);
+                cache.purgeStale();
 
                 // Assert
-                expect(cache.getItemCount()).toBe(0);
+                expect(cache.getSize()).toBe(0);
             } finally {
                 await cache?.close();
             }
@@ -1270,13 +1523,13 @@ describe("rabbit-lru-cache", () => {
     });
 
     describe("doesAllowStale()", () => {
-
         it("should return the LRU cache stale value", async () => {
             // Arrange
             let cache: RabbitLRUCache<string> | null = null;
             const name = `test-${randomUUID()}`;
             const LRUCacheOptions: LRUCache.Options<string, string> = {
-                stale: true
+                allowStale: true,
+                max: 10
             };
             try {
                 const createRabbitLRUCache = requireRabbitLRUCache<string>();
