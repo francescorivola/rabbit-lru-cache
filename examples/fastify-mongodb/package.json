@@ -1,15 +1,15 @@
 {
-  "name": "fastify-mongodb",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "scripts": {},
-  "author": "",
-  "type": "module",
-  "license": "MIT",
-  "dependencies": {
-    "fastify": "^4.9.2",
-    "mongodb": "^4.11.0",
-    "undici": "^5.12.0"
-  }
+    "name": "fastify-mongodb",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "scripts": {},
+    "author": "",
+    "type": "module",
+    "license": "MIT",
+    "dependencies": {
+        "fastify": "^4.9.2",
+        "mongodb": "^4.11.0",
+        "undici": "^5.12.0"
+    }
 }

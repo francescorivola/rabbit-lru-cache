@@ -9,6 +9,7 @@ Http requests responses have the custom header **X-Server-Id** to identify which
 ## Run the example
 
 From this folder run the following commands:
+
 ```
 npm ci                    # install dependencies
 docker-compose up -d      # run server in a distributed system

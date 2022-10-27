@@ -10,23 +10,31 @@ async function put(itemId, i) {
             test: "Hi " + i,
             date: new Date()
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }
     });
-    console.log("put", itemId, response.headers.get("x-server-id"), await response.json());
+    console.log(
+        "put",
+        itemId,
+        response.headers.get("x-server-id"),
+        await response.json()
+    );
 }
 
 async function get(itemId) {
     const response = await fetch("http://localhost:8080/items/" + itemId);
-    console.log("get", itemId,
+    console.log(
+        "get",
+        itemId,
         response.headers.get("x-server-id"),
         response.headers.get("x-cache"),
-        await response.json());
+        await response.json()
+    );
 }
 
 async function main() {
     try {
         let i = 0;
-        while(true) {
+        while (true) {
             i++;
             const itemId = i % 10;
             await put(itemId, i);
@@ -48,7 +56,7 @@ async function main() {
             ]);
             await wait(1000);
         }
-    } catch(error) {
+    } catch (error) {
         console.error(error);
         process.exit(1);
     }

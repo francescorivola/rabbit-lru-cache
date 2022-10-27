@@ -27,4 +27,4 @@ export const LRUCacheMock = jest.fn(() => ({
     load: loadMock,
     peek: peekMock,
     lengthCalculator: lengthCalculatorMock
-}))
+}));

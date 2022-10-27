@@ -1,4 +1,5 @@
 # rabbit-lru-cache
+
 A lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 
 [ ![Npm Version](https://badge.fury.io/js/rabbit-lru-cache.svg)](https://www.npmjs.com/package/rabbit-lru-cache)
@@ -9,7 +10,7 @@ A lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 
 ## Installation
 
-` npm install --save rabbit-lru-cache `
+`npm install --save rabbit-lru-cache`
 
 ## Getting Started
 
@@ -21,7 +22,8 @@ const createRabbitLRUCache = require("rabbit-lru-cache").default;
 const cache = await createRabbitLRUCache({
     name: "example",
     LRUCacheOptions: {
-        maxAge: 120000
+        ttl: 120000,
+        max: 10000
     },
     amqpConnectOptions: {
         hostname: "localhost",
@@ -30,22 +32,42 @@ const cache = await createRabbitLRUCache({
     }
 });
 cache.addInvalidationMessageReceivedListener((content, publisherCacheId) => {
-    console.log("Cache Message", "publisherCacheId", publisherCacheId, "content", content);
+    console.log(
+        "Cache Message",
+        "publisherCacheId",
+        publisherCacheId,
+        "content",
+        content
+    );
 });
 cache.addReconnectingListener((error, attempt, retryInterval) => {
-    console.log("Reconnecting", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    console.log(
+        "Reconnecting",
+        error.message,
+        "attempt",
+        attempt,
+        "retryInterval",
+        retryInterval
+    );
 });
 cache.addReconnectedListener((error, attempt, retryInterval) => {
-    console.log("Reconnected", error.message, "attempt", attempt, "retryInterval", retryInterval);
+    console.log(
+        "Reconnected",
+        error.message,
+        "attempt",
+        attempt,
+        "retryInterval",
+        retryInterval
+    );
 });
-    
+
 await cache.getOrLoad("key", () => Promise.resolve(5));
-cache.del("key");
+cache.delete("key");
 
 await cache.close(); // gracefully shutdown RabbitMq connection
 ```
 
-Every time the lru-cache **del** or **reset** function is called a message is published in a fan out exchange and each cache subscribers consume the message to invalidate the corresponding key or the entire cache.
+Every time the lru-cache **delete** or **clear** function is called a message is published in a fan out exchange and each cache subscribers consume the message to invalidate the corresponding key or the entire cache.
 
 The **getOrLoad** function forces you to set item in cache only after loading it, avoiding a wrong usage of the library as, for instance, set in cache an item after modifying it. Finally, this function comes with concurrency mechanism to avoid stale data and [Thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) by use the same promise for concurrent requests of the same cache key while the corresponding item is not loaded in cache yet.
 
