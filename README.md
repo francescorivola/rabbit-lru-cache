@@ -14,7 +14,7 @@ A lib to invalidate lru cache keys in distributed systems powered by rabbitmq.
 
 ## Getting Started
 
-This library is powered by lru-cache and amqplib (both peer dependencies).
+This library is powered by lru-cache and amqplib (both dependencies).
 
 ```js
 const createRabbitLRUCache = require("rabbit-lru-cache").default;
