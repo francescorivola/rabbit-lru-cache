@@ -9,7 +9,7 @@
     "license": "MIT",
     "dependencies": {
         "fastify": "^4.9.2",
-        "mongodb": "^4.11.0",
+        "mongodb": "^5.0.0",
         "rabbit-lru-cache": "^3.0.0",
         "undici": "^5.12.0"
     }
