@@ -246,14 +246,13 @@ describe("rabbit-lru-cache", () => {
             let emittedMessageContent, emittedPublisherCacheId;
             const promiseCache2GetTheMessage = new Promise<void>(resolve => {
                 promiseCache2Resolve = resolve;
-                cache2?.addInvalidationMessageReceivedListener(function (
-                    messageContent,
-                    publisherCacheId
-                ) {
-                    emittedMessageContent = messageContent;
-                    emittedPublisherCacheId = publisherCacheId;
-                    resolve();
-                });
+                cache2?.addInvalidationMessageReceivedListener(
+                    function (messageContent, publisherCacheId) {
+                        emittedMessageContent = messageContent;
+                        emittedPublisherCacheId = publisherCacheId;
+                        resolve();
+                    }
+                );
             });
 
             // Act
