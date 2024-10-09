@@ -14,13 +14,19 @@ import {
 } from "./amqplib-mock";
 import { clearMock, deleteMock, LRUCacheMock } from "./lru-cache-mock";
 import { randomUUID } from "crypto";
-import createRabbitLRUCache from "../src/index";
 
 const amqpConnectOptions: Options.Connect = {
     hostname: "localhost",
     username: "guest",
     password: "guest"
 };
+
+function requireRabbitLRUCache<T>(): (
+    options: RabbitLRUCacheOptions<T>
+) => Promise<RabbitLRUCache<T>> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("../src/index").default;
+}
 
 describe("rabbit-lru-cache", () => {
     it("should throw an assert error if options is null", async () => {
@@ -29,6 +35,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache(
                 null as unknown as RabbitLRUCacheOptions<string>
             );
@@ -44,6 +51,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache(
                 undefined as unknown as RabbitLRUCacheOptions<string>
             );
@@ -59,6 +67,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: null as unknown as string,
                 LRUCacheOptions: { max: 10 },
@@ -76,6 +85,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "",
                 LRUCacheOptions: { max: 10 },
@@ -93,6 +103,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: null as unknown as LRUCache.Options<
@@ -115,6 +126,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -138,6 +150,7 @@ describe("rabbit-lru-cache", () => {
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -219,6 +232,7 @@ describe("rabbit-lru-cache", () => {
         const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -263,6 +277,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -295,6 +310,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -327,6 +343,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -356,6 +373,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<number>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -385,6 +403,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -419,6 +438,7 @@ describe("rabbit-lru-cache", () => {
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -458,6 +478,7 @@ describe("rabbit-lru-cache", () => {
         const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -534,6 +555,7 @@ describe("rabbit-lru-cache", () => {
         const LRUCacheOptions = { max: 10 };
         let promiseCache2Resolve;
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -612,6 +634,7 @@ describe("rabbit-lru-cache", () => {
         let promiseCache2Resolve;
         let promiseCache3Resolve;
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache1 = await createRabbitLRUCache({
                 name,
                 LRUCacheOptions,
@@ -693,6 +716,7 @@ describe("rabbit-lru-cache", () => {
         expect.assertions(2);
         const name = `test-${randomUUID()}`;
         const LRUCacheOptions = { max: 10 };
+        const createRabbitLRUCache = requireRabbitLRUCache<string>();
         const cache = await createRabbitLRUCache({
             name,
             LRUCacheOptions,
@@ -722,6 +746,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -748,6 +773,7 @@ describe("rabbit-lru-cache", () => {
 
         // Act
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -779,6 +805,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -850,6 +877,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -962,6 +990,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1006,6 +1035,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1064,6 +1094,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1119,6 +1150,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1171,6 +1203,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1235,6 +1268,8 @@ describe("rabbit-lru-cache", () => {
                     )
             );
 
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
+
             // Act
             await createRabbitLRUCache({
                 name: "test",
@@ -1277,6 +1312,7 @@ describe("rabbit-lru-cache", () => {
                         )
                 );
 
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1318,6 +1354,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1362,6 +1399,7 @@ describe("rabbit-lru-cache", () => {
         let cache;
 
         try {
+            const createRabbitLRUCache = requireRabbitLRUCache<string>();
             cache = await createRabbitLRUCache({
                 name: "test",
                 LRUCacheOptions: { max: 10 },
@@ -1403,6 +1441,7 @@ describe("rabbit-lru-cache", () => {
                 max: 1000
             };
             try {
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
@@ -1430,6 +1469,7 @@ describe("rabbit-lru-cache", () => {
                 max: 100
             };
             try {
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
@@ -1457,6 +1497,7 @@ describe("rabbit-lru-cache", () => {
                 max: 10
             };
             try {
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,
@@ -1490,6 +1531,7 @@ describe("rabbit-lru-cache", () => {
                 max: 10
             };
             try {
+                const createRabbitLRUCache = requireRabbitLRUCache<string>();
                 cache = await createRabbitLRUCache({
                     name,
                     LRUCacheOptions,

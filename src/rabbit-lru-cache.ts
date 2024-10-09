@@ -168,7 +168,7 @@ export async function createRabbitLRUCache<T>(
                 if (msg === null) {
                     throw new Error("consumer has been cancelled by RabbitMq");
                 }
-                const publisherCacheId = (msg.properties.headers || {})[
+                const publisherCacheId = { ...msg.properties.headers }[
                     "x-cache-id"
                 ];
                 if (publisherCacheId === cacheId) {
