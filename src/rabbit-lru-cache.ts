@@ -156,7 +156,10 @@ export async function createRabbitLRUCache<T>(
         await channel.assertQueue(queueName, {
             durable: false,
             exclusive: true,
-            autoDelete: true
+            autoDelete: true,
+            arguments: {
+                "x-queue-version": 2
+            }
         });
         await channel.bindQueue(queueName, exchangeName, "");
         await channel.consume(
