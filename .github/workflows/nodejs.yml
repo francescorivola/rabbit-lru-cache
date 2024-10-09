@@ -37,7 +37,7 @@ jobs:
 
     - name: Publish Code Coverage
       if: github.ref == 'refs/heads/master'
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v4
 
   automerge:
     needs: build
