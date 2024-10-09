@@ -17,7 +17,7 @@ jobs:
       - name: Use RabbitMq
         uses: getong/rabbitmq-action@v1.2
         with:
-          rabbitmq version: "3.11-alpine"
+          rabbitmq version: "3.13-alpine"
           host port: 5672
           rabbitmq user: "guest"
           rabbitmq password: "guest"
@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/setup-node@v1
         with:
-          node-version: 18
+          node-version: 20
           registry-url: https://registry.npmjs.org/
       - run: npm install
       - run: npm run build
