@@ -8,7 +8,7 @@
     "type": "module",
     "license": "MIT",
     "dependencies": {
-        "fastify": "^4.9.2",
+        "fastify": "^5.0.0",
         "mongodb": "^6.2.0",
         "rabbit-lru-cache": "^3.0.0",
         "undici": "^6.0.0"
