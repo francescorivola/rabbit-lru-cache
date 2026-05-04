@@ -1,5 +1,11 @@
 import * as LRUCache from "lru-cache";
-import { connect, Options, ConsumeMessage, Channel, ChannelModel } from "amqplib";
+import {
+    connect,
+    Options,
+    ConsumeMessage,
+    Channel,
+    ChannelModel
+} from "amqplib";
 import { ClosingError } from "./errors/ClosingError";
 import * as assert from "assert";
 import { EventEmitter } from "events";
