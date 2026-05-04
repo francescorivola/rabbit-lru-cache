@@ -1,5 +1,5 @@
 import * as LRUCache from "lru-cache";
-import { connect, Options, ConsumeMessage, Channel, Connection } from "amqplib";
+import { connect, Options, ConsumeMessage, Channel, ChannelModel } from "amqplib";
 import { ClosingError } from "./errors/ClosingError";
 import * as assert from "assert";
 import { EventEmitter } from "events";
@@ -90,7 +90,7 @@ export async function createRabbitLRUCache<T>(
     let cacheId = randomUUID();
     const cache = new LRUCache<string, T>(options.LRUCacheOptions);
 
-    let connection: Connection;
+    let connection: ChannelModel;
     let publisherChannel: Channel;
     let subscriberChannel: Channel;
     const exchangeName = `rabbit-lru-cache-${options.name}`;
@@ -117,12 +117,12 @@ export async function createRabbitLRUCache<T>(
         cache.delete(key);
     }
 
-    function createConnection(options: Options.Connect): Promise<Connection> {
+    function createConnection(options: Options.Connect): Promise<ChannelModel> {
         return connect(options);
     }
 
     function addConnectionErrorHandlerListener(
-        connection: Connection,
+        connection: ChannelModel,
         handleConnectionError: (
             error: Error,
             attempt: number,
@@ -136,7 +136,7 @@ export async function createRabbitLRUCache<T>(
     }
 
     async function createPublisher(
-        connection: Connection,
+        connection: ChannelModel,
         exchangeName: string
     ): Promise<Channel> {
         const channel = await connection.createChannel();
@@ -147,7 +147,7 @@ export async function createRabbitLRUCache<T>(
     }
 
     async function createConsumer(
-        connection: Connection,
+        connection: ChannelModel,
         exchangeName: string,
         cacheId: string
     ): Promise<Channel> {
