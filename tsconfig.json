@@ -6,9 +6,9 @@
         "noImplicitAny": false,
         "declaration": true,
         "sourceMap": true,
+        "rootDir": "src",
         "outDir": "build",
         "lib": ["es2020"],
-        "moduleResolution": "node",
         "noUnusedLocals": true,
         "strict": true
     }

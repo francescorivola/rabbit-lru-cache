@@ -5,7 +5,7 @@ module.exports = {
     collectCoverage: true,
     collectCoverageFrom: ["src/**/*.ts"],
     transform: {
-        "<regex_match_files>": [
+        "^.+\\.tsx?$": [
             "ts-jest",
             {
                 tsconfig: "./test/tsconfig.json"
