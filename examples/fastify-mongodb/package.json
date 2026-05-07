@@ -10,7 +10,7 @@
     "dependencies": {
         "fastify": "^5.0.0",
         "mongodb": "^7.2.0",
-        "rabbit-lru-cache": "^3.0.0",
+        "rabbit-lru-cache": "^4.0.0",
         "undici": "^8.2.0"
     }
 }
