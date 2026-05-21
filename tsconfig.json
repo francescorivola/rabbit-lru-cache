@@ -9,6 +9,7 @@
         "rootDir": "src",
         "outDir": "build",
         "lib": ["es2020"],
+        "types": ["node"],
         "noUnusedLocals": true,
         "strict": true
     }
