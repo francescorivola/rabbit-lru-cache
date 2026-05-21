@@ -41,6 +41,6 @@
     },
     "dependencies": {
         "amqplib": "^2.0.1",
-        "lru-cache": "^7.14.0"
+        "lru-cache": "^11.5.0"
     }
 }
